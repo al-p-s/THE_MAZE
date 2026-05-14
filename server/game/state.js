@@ -10,7 +10,7 @@ function createPlayer(socketId, index, spawnCell) {
     items: [],
     debuffs: [],
     hasTreasure: false,
-    visibleCells: [],
+    visibleCells: {},
     isAlive: true,
     actionPoints: 2,
     rerollUsed: false, // Пинкертон — 1 раз за игру
@@ -52,4 +52,50 @@ function createGameState(playerSockets, playerCount) {
   };
 }
 
-module.exports = { createGameState };
+function revealCell(player, x, y) {
+  const key = `${x},${y}`;
+  if (!player.visibleCells[key]) {
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+  }
+}
+
+function revealWall(player, x, y, direction) {
+  const key = `${x},${y}`;
+  if (player.visibleCells[key]) {
+    player.visibleCells[key][direction] = true;
+  }
+}
+
+function getPlayerView(gameState, socketId) {
+  const player = gameState.players.find(p => p.id === socketId);
+  if (!player) return null;
+
+  const visibleSet = player.visibleCells;
+
+  const filteredCells = gameState.maze.cells.map(row =>
+    row.map(cell => {
+      const key = `${cell.x},${cell.y}`;
+      const checkedWalls = visibleSet[key];
+      if (!checkedWalls) return { x: cell.x, y: cell.y, hidden: true };
+      return {
+        ...cell,
+        walls: {
+          top: checkedWalls.top ? cell.walls.top : null,
+          right: checkedWalls.right ? cell.walls.right : null,
+          bottom: checkedWalls.bottom ? cell.walls.bottom : null,
+          left: checkedWalls.left ? cell.walls.left : null,
+        }
+      };
+    })
+  );
+
+  return {
+    you: player,
+    maze: { ...gameState.maze, cells: filteredCells },
+    treasure: player.hasTreasure ? gameState.treasure : null,
+    currentTurn: gameState.currentTurn,
+    status: gameState.status,
+  };
+}
+
+module.exports = { createGameState, revealCell, revealWall, getPlayerView };
