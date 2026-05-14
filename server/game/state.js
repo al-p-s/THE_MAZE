@@ -1,9 +1,18 @@
+const DIRS = { top:{dx:0,dy:-1}, right:{dx:1,dy:0}, bottom:{dx:0,dy:1}, left:{dx:-1,dy:0} };
+const OPPOSITE = { top:'bottom', bottom:'top', left:'right', right:'left' };
+
+function getCell(maze, x, y) {
+  if (x < 0 || y < 0 || x >= maze.width || y >= maze.height) return null;
+  return maze.cells[y][x];
+}
+
 function createPlayer(socketId, index, spawnCell) {
   return {
     id: socketId,
     index,
     x: spawnCell.x,
     y: spawnCell.y,
+    className: 'pinkerton',
     health: 3,
     ammo: 2,
     bombs: 1,
@@ -13,7 +22,6 @@ function createPlayer(socketId, index, spawnCell) {
     visibleCells: {},
     isAlive: true,
     actionPoints: 2,
-    rerollUsed: false, // Пинкертон — 1 раз за игру
   };
 }
 
@@ -36,6 +44,8 @@ function createGameState(playerSockets, playerCount) {
   const players = playerSockets.map((socketId, i) =>
     createPlayer(socketId, i, spawns[i])
   );
+
+  players.forEach(p => revealCell(p, p.x, p.y));
 
   return {
     status: 'active',
@@ -64,6 +74,47 @@ function revealWall(player, x, y, direction) {
   if (player.visibleCells[key]) {
     player.visibleCells[key][direction] = true;
   }
+}
+
+function addDebuff(player, type, turns) {
+  const existing = player.debuffs.find(d => d.type === type);
+  if (existing) existing.turnsLeft = Math.max(existing.turnsLeft, turns);
+  else player.debuffs.push({ type, turnsLeft: turns });
+}
+
+function tickDebuffs(player) {
+  player.debuffs = player.debuffs
+    .map(d => ({ ...d, turnsLeft: d.turnsLeft - 1 }))
+    .filter(d => d.turnsLeft > 0);
+}
+
+function hasDebuff(player, type) {
+  return player.debuffs.some(d => d.type === type);
+}
+
+function nextTurn(gameState) {
+  const current = gameState.players[gameState.currentTurn];
+  tickDebuffs(current);
+
+  const total = gameState.players.length;
+  let next = (gameState.currentTurn + 1) % total;
+  let attempts = 0;
+  while (!gameState.players[next].isAlive && attempts < total) {
+    next = (next + 1) % total;
+    attempts++;
+  }
+
+  gameState.currentTurn = next;
+  const p = gameState.players[next];
+
+  if (hasDebuff(p, 'P')) {
+    tickDebuffs(p);
+    p.actionPoints = 0;
+    return nextTurn(gameState); // пропуск хода
+  }
+
+  p.actionPoints = hasDebuff(p, 'S') ? 1 : 2;
+  return next;
 }
 
 function getPlayerView(gameState, socketId) {
@@ -98,4 +149,11 @@ function getPlayerView(gameState, socketId) {
   };
 }
 
-module.exports = { createGameState, revealCell, revealWall, getPlayerView };
+module.exports = {
+  createGameState,
+  revealCell, revealWall,
+  addDebuff, tickDebuffs, hasDebuff,
+  nextTurn,
+  getPlayerView,
+  getCell, DIRS, OPPOSITE,
+};
