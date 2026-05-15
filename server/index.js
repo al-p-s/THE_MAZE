@@ -10,7 +10,7 @@ const {
   actionAttack, actionUseHospital,
   actionUseArsenal, actionTreasure,
   actionUseBomb, actionCheckCell,
-  actionUseMedkit
+  actionUseMedkit, actionMelee,
 } = require('./game/actions');
 
 const app = express();
@@ -185,6 +185,25 @@ io.on('connection', (socket) => {
       }
     }
 
+    const p = gameState.players.find(p => p.id === socket.id);
+    if (p.actionPoints <= 0) advanceTurn();
+    else broadcastViews();
+  });
+
+  socket.on('action:melee', () => {
+    if (!isCurrentPlayer(socket.id)) return;
+    const result = actionMelee(gameState, socket.id);
+    if (!result.ok) return;
+    io.emit('game:event', { event: 'melee', playerId: socket.id, hit: result.hit, roll: result.roll,
+      damage: result.damage ?? 0, targetId: result.targetId ?? null, died: result.died ?? false });
+    if (result.died) {
+      const alive = gameState.players.filter(p => p.isAlive);
+      if (alive.length === 1) {
+        gameState.status = 'finished';
+        io.emit('game:over', { winner: alive[0].id, reason: 'last_alive' });
+        return;
+      }
+    }
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();

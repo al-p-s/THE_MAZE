@@ -273,10 +273,39 @@ function actionAttack(gameState, socketId, direction) {
   return { ok: true, hit: true, roll, damage, debuff, targetId: target.id, died };
 }
 
+function actionMelee(gameState, socketId) {
+  const player = gameState.players.find(p => p.id === socketId);
+  if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
+
+  const target = gameState.players.find(p =>
+    p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y
+  );
+  if (!target) return { ok: false, reason: 'no_target' };
+
+  player.actionPoints -= 1;
+  const roll = rollDice();
+  if (roll <= 3) return { ok: true, hit: false, roll };
+
+  target.health -= 0.5;
+  if (target.hasTreasure) {
+    target.hasTreasure = false;
+    gameState.treasure.carriedBy = null;
+    gameState.treasure.x = target.x;
+    gameState.treasure.y = target.y;
+    gameState.treasure.isBuried = false;
+  }
+
+  const died = target.health <= 0;
+  if (died) target.isAlive = false;
+
+  return { ok: true, hit: true, roll, damage: 0.5, targetId: target.id, died };
+}
+
 module.exports = {
   revealCell, revealWall,
   addDebuff, actionMove, actionCheckWall,
   actionUseHospital, actionUseArsenal,
   actionAttack, actionTreasure, actionUseBomb,
-  actionCheckCell, actionUseMedkit
+  actionCheckCell, actionUseMedkit,
+  actionMelee,
 };
