@@ -80,10 +80,19 @@ function placePOIs(cells, width, height, playerCount) {
 
   const used = [];
 
-  // Выход — на крайней клетке
-  const exit = pickRandom(edgeCells, used);
-  exit.type = 'exit';
-  used.push(exit);
+  // Выход — дырка во внешней стене
+  const exitCell = pickRandom(edgeCells, used);
+  used.push(exitCell);
+
+  // Определяем направление наружу
+  let exitDirection;
+  if (exitCell.y === 0) exitDirection = 'top';
+  else if (exitCell.y === height - 1) exitDirection = 'bottom';
+  else if (exitCell.x === 0) exitDirection = 'left';
+  else exitDirection = 'right';
+
+  // Убираем стену
+  exitCell.walls[exitDirection] = false;
 
   // Арсеналы
   for (let i = 0; i < poiCount; i++) {
@@ -104,7 +113,7 @@ function placePOIs(cells, width, height, playerCount) {
   treasureCell.content = 'treasure';
   used.push(treasureCell);
 
-  return cells;
+  return { cells, exit: { x: exitCell.x, y: exitCell.y, direction: exitDirection } };
 }
 
 function spawnPlayers(cells, width, height, playerCount) {

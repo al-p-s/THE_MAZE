@@ -29,7 +29,7 @@ function createGameState(playerSockets, playerCount) {
   const { generateMaze, getMazeSize, placePOIs, spawnPlayers } = require('./maze');
   const { width, height } = getMazeSize(playerCount);
   const cells = generateMaze(width, height);
-  placePOIs(cells, width, height, playerCount);
+  const { cells: mazeCells, exit } = placePOIs(cells, width, height, playerCount);
   let treasureX, treasureY;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -51,7 +51,8 @@ function createGameState(playerSockets, playerCount) {
     status: 'active',
     currentTurn: 0, // индекс игрока в массиве players
     players,
-    maze: { width, height, cells },
+    maze: { width, height, cells: mazeCells },
+    exit,
     treasure: {
       x: treasureX,
       y: treasureY,
@@ -140,8 +141,13 @@ function getPlayerView(gameState, socketId) {
     })
   );
 
+  const cellmates = gameState.players.filter(p =>
+  p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y);
+
   return {
     you: player,
+    cellmates,
+    exit: player.knownExit ? gameState.exit : null,
     maze: { ...gameState.maze, cells: filteredCells },
     treasure: player.hasTreasure ? gameState.treasure : null,
     currentTurn: gameState.currentTurn,
