@@ -57,12 +57,14 @@ function draw(ctx, gameData, W, H, CELL) {
   ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Draw cells
-  for (const row of maze.cells) {
-    for (const cell of row) {
-      drawCell(ctx, cell, CELL, exit);
-    }
-  }
+  // Draw cells and walls
+  for (const row of maze.cells)
+    for (const cell of row)
+      drawCellFloor(ctx, cell, CELL, exit);
+
+  for (const row of maze.cells)
+    for (const cell of row)
+      drawCellWalls(ctx, cell, CELL);
 
   // Draw player
   if (you) drawPlayer(ctx, you, CELL, cellmates);
@@ -89,7 +91,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCell(ctx, cell, CELL, exit) {
+function drawCellFloor(ctx, cell, CELL, exit) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -116,8 +118,12 @@ function drawCell(ctx, cell, CELL, exit) {
 
   if (content === 'mine') drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
   if (content === 'treasure') drawTile(ctx, px, py, COLOR.treasure, '◆', 'КЛАД', CELL);
+}
 
-  // Walls
+function drawCellWalls(ctx, cell, CELL) {
+  if (!cell.walls) return;
+  const px = cell.x * CELL;
+  const py = cell.y * CELL;
   drawWalls(ctx, cell, px, py, CELL);
 }
 
