@@ -66,7 +66,9 @@ function createGameState(playerSockets, playerCount) {
 function revealCell(player, x, y) {
   const key = `${x},${y}`;
   if (!player.visibleCells[key]) {
-    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false, visited: true };
+  } else {
+    player.visibleCells[key].visited = true;
   }
 }
 
@@ -128,7 +130,7 @@ function getPlayerView(gameState, socketId) {
     row.map(cell => {
       const key = `${cell.x},${cell.y}`;
       const checkedWalls = visibleSet[key];
-      if (!checkedWalls) return { x: cell.x, y: cell.y, hidden: true };
+      if (!checkedWalls || !checkedWalls.visited) return { x: cell.x, y: cell.y, hidden: true };
       return {
         ...cell,
         walls: {

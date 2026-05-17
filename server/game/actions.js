@@ -16,6 +16,11 @@ function actionMove(gameState, socketId, direction) {
 
   if (cell.walls[direction] && !isOutside) {
     revealWall(player, player.x, player.y, direction);
+    const key = `${nx},${ny}`;
+    if (!player.visibleCells[key]) {
+      player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    }
+    player.visibleCells[key][OPPOSITE[direction]] = true;
     return { ok: true, blocked: true };
   }
 
@@ -25,7 +30,7 @@ function actionMove(gameState, socketId, direction) {
 
   // Проверяем выход через внешнюю стену
   if (isOutside) {
-     player.x -= dx;
+    player.x -= dx;
     player.y -= dy;
     const exit = gameState.exit;
     const isExit = exit.x === player.x && exit.y === player.y && exit.direction === direction;
@@ -87,6 +92,11 @@ function actionCheckWall(gameState, socketId, direction) {
   const isEdge = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
   revealWall(player, player.x, player.y, direction);
+  const key = `${nx},${ny}`;
+  if (!player.visibleCells[key]) {
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+  }
+  player.visibleCells[key][OPPOSITE[direction]] = true;
 
   const cell = getCell(gameState.maze, player.x, player.y);
   const hasWall = cell.walls[direction];

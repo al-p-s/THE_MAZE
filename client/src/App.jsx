@@ -66,21 +66,23 @@ export default function App() {
     socket.emit(event, payload);
   }, [isMyTurn]);
 
-  if (state.screen === 'waiting') return <WaitingScreen />;
-  if (state.screen === 'over') return <OverScreen winner={state.winner} myId={state.myId} reason={state.winReason} />;
-
   const { gameData, myId, currentTurn, events } = state;
   const me = gameData?.you;
 
   return (
     <div style={styles.root}>
+      <div style={styles.leftbar} />
       <div style={styles.canvasArea}>
-        <MazeCanvas gameData={gameData} myId={myId} />
+        {state.screen === 'waiting' && <WaitingScreen />}
+        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} />}
+        {state.screen === 'over' && <OverScreen winner={state.winner} myId={myId} reason={state.winReason} />}
       </div>
-      <div style={styles.sidebar}>
-        <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} myId={myId} />
-        <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} />
-        <EventLog events={events} />
+      <div style={styles.rightbar}>
+        {state.screen === 'game' && <>
+          <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
+          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} />
+          <EventLog events={events} />
+        </>}
       </div>
     </div>
   );
@@ -158,27 +160,31 @@ const styles = {
     color: '#e0e0e0',
     overflow: 'hidden',
   },
+  leftbar: {
+  width: '280px',
+  borderRight: '1px solid #222',
+  flexShrink: 0,
+  },
   canvasArea: {
     flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '20px',
+    overflow: 'hidden',
   },
-  sidebar: {
+  rightbar: {
     width: '280px',
     display: 'flex',
     flexDirection: 'column',
     borderLeft: '1px solid #222',
     overflow: 'hidden',
+    flexShrink: 0,
   },
   center: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
-    width: '100vw',
-    background: '#0a0a0a',
+    flex: 1,
   },
   waitBox: {
     textAlign: 'center',

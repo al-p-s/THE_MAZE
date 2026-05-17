@@ -26,7 +26,7 @@ export default function MazeCanvas({ gameData }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const { maze } = gameData;
-    const MAX_SIZE = Math.min(window.innerWidth - 300, window.innerHeight - 40);
+    const MAX_SIZE = Math.min(window.innerWidth - 560, window.innerHeight - 40);
     const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
     const ctx = canvas.getContext('2d');
     draw(ctx, gameData, canvas.width, canvas.height, CELL);
@@ -97,6 +97,7 @@ function drawCell(ctx, cell, CELL, exit) {
   if (hidden) {
     ctx.fillStyle = COLOR.fog;
     ctx.fillRect(px, py, CELL, CELL);
+    drawWalls(ctx, cell, px, py, CELL);
     return;
   }
 
@@ -139,6 +140,7 @@ function drawTile(ctx, px, py, color, icon, label, CELL) {
 }
 
 function drawWalls(ctx, cell, px, py, CELL) {
+  if (!cell.walls) return;
 
   ctx.lineWidth = WALL;
   ctx.lineCap = 'square';
