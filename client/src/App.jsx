@@ -1,18 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import socket from './socket';
 import MazeCanvas from './components/MazeCanvas';
 import GameUI from './components/GameUI';
 import ActionPanel from './components/ActionPanel';
 import EventLog from './components/EventLog';
+import CharacterPanel from './components/CharacterPanel';
+import NotificationPanel from './components/NotificationPanel';
 
 const INITIAL_STATE = {
-  screen: 'waiting', // waiting | game | over
-  gameData: null,    // последний game:state от сервера
+  screen: 'waiting',
+  gameData: null,
   myId: null,
-  currentTurn: null, // { playerId, playerIndex }
+  currentTurn: null,
   winner: null,
   winReason: null,
-  events: [],        // лог событий
+  events: [],
+  notification: null,
 };
 
 export default function App() {
@@ -22,13 +25,15 @@ export default function App() {
     setState(s => ({ ...s, events: [...s.events.slice(-49), msg] }));
   }, []);
 
+  const myIdRef = useRef(null);
+
   useEffect(() => {
     socket.on('connect', () => {
+      myIdRef.current = socket.id;
       setState(s => ({ ...s, myId: socket.id }));
     });
 
     socket.on('game:state', (data) => {
-      console.log('cellmates', data.cellmates);
       setState(s => ({
         ...s,
         screen: data.status === 'finished' ? 'over' : 'game',
@@ -46,6 +51,8 @@ export default function App() {
     });
 
     socket.on('game:event', (ev) => {
+      const note = makeNotification(ev, myIdRef.current);
+      if (note) setState(s => ({ ...s, notification: note }));
       addEvent(formatEvent(ev));
     });
 
@@ -60,7 +67,6 @@ export default function App() {
 
   const isMyTurn = state.currentTurn?.playerId === state.myId;
 
-  // Действия
   const act = useCallback((event, payload = {}) => {
     if (!isMyTurn) return;
     socket.emit(event, payload);
@@ -71,17 +77,27 @@ export default function App() {
 
   return (
     <div style={styles.root}>
-      <div style={styles.leftbar} />
+      {/* Left bar — character info + log */}
+      <div style={styles.leftbar}>
+        {state.screen === 'game'
+          ? <CharacterPanel me={me} events={events} />
+          : <EventLog events={events} />
+        }
+      </div>
+
+      {/* Canvas */}
       <div style={styles.canvasArea}>
         {state.screen === 'waiting' && <WaitingScreen />}
         {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} />}
         {state.screen === 'over' && <OverScreen winner={state.winner} myId={myId} reason={state.winReason} />}
       </div>
+
+      {/* Right bar — stats + actions */}
       <div style={styles.rightbar}>
         {state.screen === 'game' && <>
           <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
           <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} />
-          <EventLog events={events} />
+          <NotificationPanel notification={state.notification} />
         </>}
       </div>
     </div>
@@ -144,6 +160,44 @@ function formatEvent(ev) {
   }
 }
 
+function makeNotification(ev, myId) {
+  if (ev.event === 'cell_checked' && ev.playerId === myId) {
+    return ev.content
+      ? { text: 'DANGER!', color: '#ff2200', sub: ev.content }
+      : { text: 'SAFE!', color: '#c8ff00' };
+  }
+  if (ev.event === 'wall_checked' && ev.playerId === myId) {
+    return ev.isEdge
+      ? { text: 'NOTHING...', color: '#555' }
+      : ev.hasWall
+        ? { text: 'WALL!', color: '#ffaa00' }
+        : { text: 'FREE!', color: '#00ffcc' };
+  }
+  if (ev.event === 'exit_found' && ev.playerId === myId) {
+    return { text: 'EXIT!', color: '#00ffcc', sub: 'выход обнаружен' };
+  }
+  if (ev.event === 'move_blocked' && ev.playerId === myId) {
+    return ev.isEdge
+      ? { text: 'NOTHING...', color: '#555' }
+      : { text: 'WALL!', color: '#ffaa00' };
+  }
+  if (ev.event === 'attack' && ev.hit && ev.targetId === myId) {
+    return { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `дебафф: ${ev.debuff}` : null };
+  }
+  if (ev.event === 'mine_triggered' && ev.playerId === myId) {
+    return { text: '-1.5 HP', color: '#ff2200', sub: 'мина!' };
+  }
+  if (ev.event === 'arsenal_used' && ev.playerId === myId) {
+    return { text: 'LOOTED', color: '#ffaa00', sub: ev.reward === 'ammo' ? '+2 патрона' : '+2 бомбы' };
+  }
+  if (ev.event === 'hospital_used' && ev.playerId === myId) {
+    return ev.choice === 'heal'
+      ? { text: 'HEALED', color: '#ff4488', sub: 'здоровье восстановлено' }
+      : { text: '+MEDKIT', color: '#ff4488', sub: 'аптечка получена' };
+  }
+  return null;
+}
+
 function reasonLabel(r) {
   if (r === 'last_alive') return 'Последний выживший';
   if (r === 'exit') return 'Вышел с кладом';
@@ -161,9 +215,12 @@ const styles = {
     overflow: 'hidden',
   },
   leftbar: {
-  width: '280px',
-  borderRight: '1px solid #222',
-  flexShrink: 0,
+    width: '280px',
+    borderRight: '1px solid #222',
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   canvasArea: {
     flex: 1,

@@ -21,7 +21,7 @@ function actionMove(gameState, socketId, direction) {
       player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
     }
     player.visibleCells[key][OPPOSITE[direction]] = true;
-    return { ok: true, blocked: true };
+    return { ok: true, blocked: true, isEdge: false };
   }
 
   revealWall(player, player.x, player.y, direction);
@@ -39,7 +39,7 @@ function actionMove(gameState, socketId, direction) {
     if (!exitKnown) {
       revealWall(player, player.x, player.y, direction);
       if (isExit) player.knownExit = true;
-      return { ok: true, blocked: true, exitFound: isExit };
+      return { ok: true, blocked: true, exitFound: isExit, isEdge: true };
     }
 
     if (isExit) {
@@ -49,7 +49,7 @@ function actionMove(gameState, socketId, direction) {
         return { ok: true, blocked: false, exit: true, won: true };
       }
     }
-    return { ok: true, blocked: true };
+    return { ok: true, blocked: true, isEdge: isOutside };
   }
 
   const landedCell = getCell(gameState.maze, player.x, player.y);
@@ -110,7 +110,7 @@ function actionCheckWall(gameState, socketId, direction) {
     }
   }
 
-  return { ok: true, isEdge, isExit };
+  return { ok: true, isEdge, isExit, hasWall };
 }
 
 function actionUseHospital(gameState, socketId, choice) {
