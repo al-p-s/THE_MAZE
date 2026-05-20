@@ -151,7 +151,7 @@ function getPlayerView(gameState, socketId) {
     cellmates,
     exit: player.knownExit ? gameState.exit : null,
     maze: { ...gameState.maze, cells: filteredCells },
-    treasure: player.hasTreasure ? gameState.treasure : null,
+    treasure: gameState.treasure.destroyed ? null : gameState.treasure,
     currentTurn: gameState.currentTurn,
     status: gameState.status,
   };

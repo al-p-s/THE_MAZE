@@ -65,6 +65,16 @@ function draw(ctx, gameData, W, H, CELL) {
   for (const row of maze.cells)
     for (const cell of row)
       drawCellWalls(ctx, cell, CELL);
+  
+  if (gameData.treasure && !gameData.treasure.carriedBy) {
+    const t = gameData.treasure;
+    const cell = gameData.maze.cells[t.y]?.[t.x];
+    if (cell && !cell.hidden) {
+      const px = t.x * CELL;
+      const py = t.y * CELL;
+      drawTreasure(ctx, px, py, CELL, t.isBuried);
+    }
+  }
 
   // Draw player
   if (you) drawPlayer(ctx, you, CELL, cellmates);
@@ -117,7 +127,6 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   else if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL);
 
   if (content === 'mine') drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
-  if (content === 'treasure') drawTile(ctx, px, py, COLOR.treasure, '◆', 'КЛАД', CELL);
 }
 
 function drawCellWalls(ctx, cell, CELL) {
@@ -237,6 +246,13 @@ function drawPlayer(ctx, player, CELL, cellmates = []) {
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;
     ctx.stroke();
+    if (mate.hasTreasure) {
+      ctx.fillStyle = COLOR.treasure;
+      ctx.font = `bold ${r * 1.3}px "Courier New"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('◆', cx, cy - r - r * 0.5);
+    }
 
     drawHealthBar(ctx, cx, cy, r, mate.health);
   });
@@ -290,6 +306,44 @@ function getPositions(cellX, cellY, CELL, total) {
       cy: baseCy + radius * Math.sin(angle),
     };
   });
+}
+
+function drawTreasure(ctx, px, py, CELL, isBuried) {
+  const cx = px + CELL / 2;
+  const cy = py + CELL / 2;
+  const r = CELL * 0.25;
+
+  if (isBuried) {
+    // пунктирный кружок
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = COLOR.treasure + '88';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = COLOR.treasure + '33';
+    ctx.fill();
+    ctx.fillStyle = COLOR.treasure + '66';
+    ctx.font = `${CELL * 0.18}px "Courier New"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('BURIED', cx, cy);
+  } else {
+    // solid кружок
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = COLOR.treasure + '33';
+    ctx.fill();
+    ctx.strokeStyle = COLOR.treasure;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = COLOR.treasure;
+    ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('◆', cx, cy);
+  }
 }
 
 const styles = {
