@@ -176,6 +176,7 @@ io.on('connection', (socket) => {
       roll: result.roll,
       damage: result.damage,
       debuff: result.debuff,
+      debuffTurns: result.debuffTurns ?? null,
       targetId: result.targetId ?? null,
       died: result.died ?? false,
     });

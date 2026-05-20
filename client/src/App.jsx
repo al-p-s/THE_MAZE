@@ -174,26 +174,43 @@ function makeNotification(ev, myId) {
         : { text: 'FREE!', color: '#00ffcc' };
   }
   if (ev.event === 'exit_found' && ev.playerId === myId) {
-    return { text: 'EXIT!', color: '#00ffcc', sub: 'выход обнаружен' };
+    return { text: 'EXIT DETECTED!', color: '#00ffcc' };
   }
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge
       ? { text: 'NOTHING...', color: '#555' }
       : { text: 'WALL!', color: '#ffaa00' };
   }
-  if (ev.event === 'attack' && ev.hit && ev.targetId === myId) {
-    return { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `дебафф: ${ev.debuff}` : null };
+  if (ev.event === 'attack' && ev.playerId === myId) {
+    const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
+    return ev.hit
+      ? { text: `HIT! -${ev.damage}`, color: '#ff4488', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
+      : { text: 'MISS!', color: '#555' };
+  }
+  if (ev.event === 'attack' && ev.targetId === myId) {
+    const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
+    return ev.hit
+      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
+      : { text: 'DANGER!\nSOMEONE IS SHOOTING AT YOU!', color: '#ff4444' };
+  }
+  if (ev.event === 'bomb_used' && ev.playerId === myId) {
+    return ev.mode === 'wall'
+      ? { text: 'BOOM!', color: '#ffaa00' }
+      : { text: 'THE MINE IS PLANTED!', color: '#ff2200' };
   }
   if (ev.event === 'mine_triggered' && ev.playerId === myId) {
-    return { text: '-1.5 HP', color: '#ff2200', sub: 'мина!' };
+    return { text: '-1.5 HP', color: '#ff2200', sub: 'EXPLOSION!' };
   }
   if (ev.event === 'arsenal_used' && ev.playerId === myId) {
-    return { text: 'LOOTED', color: '#ffaa00', sub: ev.reward === 'ammo' ? '+2 патрона' : '+2 бомбы' };
+    return { text: 'LOOTED', color: '#ffaa00', sub: ev.reward === 'ammo' ? '+2 AMMO' : '+2 BOMBS' };
   }
   if (ev.event === 'hospital_used' && ev.playerId === myId) {
     return ev.choice === 'heal'
-      ? { text: 'HEALED', color: '#ff4488', sub: 'здоровье восстановлено' }
-      : { text: '+MEDKIT', color: '#ff4488', sub: 'аптечка получена' };
+      ? { text: 'HEALTH FULL RESTORED', color: '#ff4488' }
+      : { text: '+1 MEDKIT', color: '#ff4488' };
+  }
+  if (ev.event === 'medkit_used' && ev.playerId === myId) {
+    return { text: '+1 HP', color: '#ff4488', sub: 'MEDKIT USED' };
   }
   return null;
 }

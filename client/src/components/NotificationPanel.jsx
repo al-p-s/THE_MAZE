@@ -26,7 +26,9 @@ export default function NotificationPanel({ notification }) {
               {notification.text}
             </div>
             {notification.sub && (
-              <div style={styles.sub}>{notification.sub}</div>
+              <div style={{ ...styles.sub, color: notification.subColor || '#aaa' }}>
+                {notification.sub}
+              </div>
             )}
           </>
         )}
@@ -56,9 +58,10 @@ const styles = {
     letterSpacing: '4px',
   },
   sub: {
-    fontSize: '10px',
-    color: '#555',
-    letterSpacing: '1px',
-    marginTop: '2px',
+    fontSize: '13px',
+    fontWeight: 'bold',
+    color: '#aaa',
+    letterSpacing: '2px',
+    marginTop: '4px',
   },
 };

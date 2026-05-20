@@ -288,7 +288,7 @@ function actionAttack(gameState, socketId, direction) {
   }
 
   const roll = rollDice();
-  const { damage, debuff } = weaponResults[player.className](roll);
+  const { damage, debuff, debuffTurns } = weaponResults[player.className](roll);
 
   target.health -= damage;
   if (target.hasTreasure) {
@@ -298,14 +298,14 @@ function actionAttack(gameState, socketId, direction) {
     gameState.treasure.y = target.y;
     gameState.treasure.isBuried = false;
   }
-  if (debuff) addDebuff(target, debuff, 1);
+  if (debuff) addDebuff(target, debuff, debuffTurns);
 
   const died = target.health <= 0;
   if (died) {
     target.isAlive = false;
   }
 
-  return { ok: true, hit: true, roll, damage, debuff, targetId: target.id, died };
+  return { ok: true, hit: true, roll, damage, debuff, debuffTurns: debuff ? debuffTurns : null, targetId: target.id, died };
 }
 
 function actionMelee(gameState, socketId) {
