@@ -29,7 +29,7 @@ function createGameState(playerSockets, playerCount) {
   const { generateMaze, getMazeSize, placePOIs, spawnPlayers } = require('./maze');
   const { width, height } = getMazeSize(playerCount);
   const cells = generateMaze(width, height);
-  placePOIs(cells, width, height, playerCount);
+  const { cells: mazeCells, exit } = placePOIs(cells, width, height, playerCount);
   let treasureX, treasureY;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -51,7 +51,8 @@ function createGameState(playerSockets, playerCount) {
     status: 'active',
     currentTurn: 0, // индекс игрока в массиве players
     players,
-    maze: { width, height, cells },
+    maze: { width, height, cells: mazeCells },
+    exit,
     treasure: {
       x: treasureX,
       y: treasureY,
@@ -65,7 +66,9 @@ function createGameState(playerSockets, playerCount) {
 function revealCell(player, x, y) {
   const key = `${x},${y}`;
   if (!player.visibleCells[key]) {
-    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false, visited: true };
+  } else {
+    player.visibleCells[key].visited = true;
   }
 }
 
@@ -127,7 +130,7 @@ function getPlayerView(gameState, socketId) {
     row.map(cell => {
       const key = `${cell.x},${cell.y}`;
       const checkedWalls = visibleSet[key];
-      if (!checkedWalls) return { x: cell.x, y: cell.y, hidden: true };
+      if (!checkedWalls || !checkedWalls.visited) return { x: cell.x, y: cell.y, hidden: true };
       return {
         ...cell,
         walls: {
@@ -140,8 +143,13 @@ function getPlayerView(gameState, socketId) {
     })
   );
 
+  const cellmates = gameState.players.filter(p =>
+  p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y);
+
   return {
     you: player,
+    cellmates,
+    exit: player.knownExit ? gameState.exit : null,
     maze: { ...gameState.maze, cells: filteredCells },
     treasure: player.hasTreasure ? gameState.treasure : null,
     currentTurn: gameState.currentTurn,

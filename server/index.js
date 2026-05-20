@@ -78,7 +78,11 @@ io.on('connection', (socket) => {
       io.emit('game:over', { winner: socket.id, reason: 'exit' });
       return;
     }
-    io.emit('game:event', { event: result.blocked ? 'move_blocked' : 'moved', playerId: socket.id, direction });
+    if (result.exitFound) {
+      socket.emit('game:event', { event: 'exit_found', playerId: socket.id, direction });
+    } else {
+      io.emit('game:event', { event: result.blocked ? 'move_blocked' : 'moved', playerId: socket.id, direction, isEdge: result.isEdge ?? false });
+    }
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -88,7 +92,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionCheckCell(gameState, socket.id, direction);
     if (!result.ok) return;
-    socket.emit('game:event', { event: 'cell_checked', direction, content: result.content });
+    socket.emit('game:event', { event: 'cell_checked', playerId: socket.id, direction, content: result.content });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -98,7 +102,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionCheckWall(gameState, socket.id, direction);
     if (!result.ok) return;
-    socket.emit('game:event', { event: result.isExit ? 'exit_found' : 'wall_checked', direction, isEdge: result.isEdge });
+    socket.emit('game:event', { event: result.isExit ? 'exit_found' : 'wall_checked', playerId: socket.id, direction, isEdge: result.isEdge, hasWall: result.hasWall });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -172,6 +176,7 @@ io.on('connection', (socket) => {
       roll: result.roll,
       damage: result.damage,
       debuff: result.debuff,
+      debuffTurns: result.debuffTurns ?? null,
       targetId: result.targetId ?? null,
       died: result.died ?? false,
     });

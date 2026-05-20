@@ -8,16 +8,50 @@ function actionMove(gameState, socketId, direction) {
 
   player.actionPoints -= 1;
   const cell = getCell(gameState.maze, player.x, player.y);
+  if (!cell) return { ok: false };
+  const { dx, dy } = DIRS[direction];
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  const isOutside = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
-  if (cell.walls[direction]) {
+  if (cell.walls[direction] && !isOutside) {
     revealWall(player, player.x, player.y, direction);
-    return { ok: true, blocked: true };
+    const key = `${nx},${ny}`;
+    if (!player.visibleCells[key]) {
+      player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    }
+    player.visibleCells[key][OPPOSITE[direction]] = true;
+    return { ok: true, blocked: true, isEdge: false };
   }
 
-  const { dx, dy } = DIRS[direction];
   revealWall(player, player.x, player.y, direction);
   player.x += dx;
   player.y += dy;
+
+  // Проверяем выход через внешнюю стену
+  if (isOutside) {
+    player.x -= dx;
+    player.y -= dy;
+    const exit = gameState.exit;
+    const isExit = exit.x === player.x && exit.y === player.y && exit.direction === direction;
+    const exitKnown = player.knownExit;
+
+    if (!exitKnown) {
+      revealWall(player, player.x, player.y, direction);
+      if (isExit) player.knownExit = true;
+      return { ok: true, blocked: true, exitFound: isExit, isEdge: true };
+    }
+
+    if (isExit) {
+      if (player.hasTreasure || gameState.treasure.destroyed) {
+        gameState.status = 'finished';
+        gameState.winner = socketId;
+        return { ok: true, blocked: false, exit: true, won: true };
+      }
+    }
+    return { ok: true, blocked: true, isEdge: isOutside };
+  }
+
   const landedCell = getCell(gameState.maze, player.x, player.y);
   if (landedCell.content === 'mine' && landedCell.mineOwner !== socketId) {
     landedCell.content = null;
@@ -33,20 +67,13 @@ function actionMove(gameState, socketId, direction) {
     }
     const died = player.health <= 0;
     if (died) player.isAlive = false;
+
+    revealCell(player, player.x, player.y);
+    revealWall(player, player.x - dx, player.y - dy, direction);
+    revealWall(player, player.x, player.y, OPPOSITE[direction]);
     return { ok: true, blocked: false, mine: true, mineOwner: owner, died };
   }
-  if (landedCell.type === 'exit') {
-    if (player.hasTreasure) {
-      gameState.status = 'finished';
-      gameState.winner = socketId;
-      return { ok: true, blocked: false, exit: true, won: true };
-    }
-    if (gameState.treasure.destroyed) {
-      gameState.status = 'finished';
-      gameState.winner = socketId;
-      return { ok: true, blocked: false, exit: true, won: true };
-    }
-  }
+
   revealCell(player, player.x, player.y);
   revealWall(player, player.x, player.y, OPPOSITE[direction]);
 
@@ -65,17 +92,25 @@ function actionCheckWall(gameState, socketId, direction) {
   const isEdge = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
   revealWall(player, player.x, player.y, direction);
+  const key = `${nx},${ny}`;
+  if (!player.visibleCells[key]) {
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+  }
+  player.visibleCells[key][OPPOSITE[direction]] = true;
 
   const cell = getCell(gameState.maze, player.x, player.y);
   const hasWall = cell.walls[direction];
 
   let isExit = false;
-  if (isEdge && !hasWall) {
-    const exitCell = gameState.maze.cells.flat().find(c => c.type === 'exit');
-    isExit = exitCell?.x === player.x && exitCell?.y === player.y;
+  if (isEdge) {
+    const exit = gameState.exit;
+    if (exit.x === player.x && exit.y === player.y && exit.direction === direction) {
+      isExit = true;
+      player.knownExit = true;
+    }
   }
 
-  return { ok: true, isEdge, isExit };
+  return { ok: true, isEdge, isExit, hasWall };
 }
 
 function actionUseHospital(gameState, socketId, choice) {
@@ -253,7 +288,7 @@ function actionAttack(gameState, socketId, direction) {
   }
 
   const roll = rollDice();
-  const { damage, debuff } = weaponResults[player.className](roll);
+  const { damage, debuff, debuffTurns } = weaponResults[player.className](roll);
 
   target.health -= damage;
   if (target.hasTreasure) {
@@ -263,14 +298,14 @@ function actionAttack(gameState, socketId, direction) {
     gameState.treasure.y = target.y;
     gameState.treasure.isBuried = false;
   }
-  if (debuff) addDebuff(target, debuff, 1);
+  if (debuff) addDebuff(target, debuff, debuffTurns);
 
   const died = target.health <= 0;
   if (died) {
     target.isAlive = false;
   }
 
-  return { ok: true, hit: true, roll, damage, debuff, targetId: target.id, died };
+  return { ok: true, hit: true, roll, damage, debuff, debuffTurns: debuff ? debuffTurns : null, targetId: target.id, died };
 }
 
 function actionMelee(gameState, socketId) {
