@@ -6,6 +6,7 @@ const COLOR = {
   bg: '#0a0a0a',
   fog: '#111111',
   floor: '#1a1a1a',
+  floorVisible: '#242424',
   wall: '#3a3a3a',
   wallOuter: '#555',
   player: '#c8ff00',
@@ -51,7 +52,7 @@ export default function MazeCanvas({ gameData }) {
 }
 
 function draw(ctx, gameData, W, H, CELL) {
-  const { you, maze, cellmates, exit } = gameData;
+  const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
   ctx.fillStyle = COLOR.bg;
@@ -69,7 +70,7 @@ function draw(ctx, gameData, W, H, CELL) {
   if (gameData.treasure && !gameData.treasure.carriedBy) {
     const t = gameData.treasure;
     const cell = gameData.maze.cells[t.y]?.[t.x];
-    if (cell && !cell.hidden) {
+    if (cell && !cell.hidden && cell.inZone) {
       const px = t.x * CELL;
       const py = t.y * CELL;
       drawTreasure(ctx, px, py, CELL, t.isBuried);
@@ -77,7 +78,7 @@ function draw(ctx, gameData, W, H, CELL) {
   }
 
   // Draw player
-  if (you) drawPlayer(ctx, you, CELL, cellmates);
+  if (you) drawPlayer(ctx, you, CELL, visiblePlayers);
 }
 
 function drawExit(ctx, px, py, CELL, direction) {
@@ -114,7 +115,7 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   }
 
   // Floor
-  ctx.fillStyle = COLOR.floor;
+  ctx.fillStyle = cell.inZone ? COLOR.floorVisible : COLOR.floor;
   ctx.fillRect(px, py, CELL, CELL);
 
   if (exit && exit.x === x && exit.y === y) {
@@ -123,10 +124,10 @@ function drawCellFloor(ctx, cell, CELL, exit) {
 
   // POI / content tint
   if (type === 'exit') drawTile(ctx, px, py, COLOR.exit, '⬆', 'ВЫХОД', CELL);
-  else if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL);
-  else if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL);
+  else if (type === 'arsenal' && cell.inZone) drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL);
+  else if (type === 'hospital' && cell.inZone) drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL);
 
-  if (content === 'mine') drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
+  if (content === 'mine' && cell.inZone) drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
 }
 
 function drawCellWalls(ctx, cell, CELL) {
@@ -206,27 +207,48 @@ function drawWalls(ctx, cell, px, py, CELL) {
   }
 }
 
-function drawPlayer(ctx, player, CELL, cellmates = []) {
-  console.log('cellmates in draw:', cellmates);
-  const total = cellmates.length + 1;
-  const scale = total === 1 ? 1 : 1 / Math.sqrt(total);
-  const r = CELL * 0.15 * scale;
+function drawPlayer(ctx, you, CELL, visiblePlayers = []) {
+  // группируем visiblePlayers по клеткам
+  const byCell = {};
+  for (const p of visiblePlayers) {
+    const key = `${p.x},${p.y}`;
+    if (!byCell[key]) byCell[key] = [];
+    byCell[key].push(p);
+  }
 
-  const positions = getPositions(player.x, player.y, CELL, total);
-  const { cx, cy } = positions[0]; // ты всегда первый
+  // рисуем себя
+  const myKey = `${you.x},${you.y}`;
+  const myCellmates = byCell[myKey] || [];
+  const myTotal = myCellmates.length + 1;
+  const myPositions = getPositions(you.x, you.y, CELL, myTotal);
+  drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true);
+  myCellmates.forEach((p, i) => {
+    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false);
+  });
 
-  // Body
-  ctx.fillStyle = COLOR.player;
+  // рисуем остальных visible (не в моей клетке)
+  for (const [key, players] of Object.entries(byCell)) {
+    if (key === myKey) continue;
+    const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
+    players.forEach((p, i) => {
+      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false);
+    });
+  }
+}
+
+function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure) {
+  const { cx, cy } = pos;
+  const r = CELL * 0.15;
+
+  ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
-  // Body border
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // Treasure indicator
-  if (player.hasTreasure) {
+  if (showTreasure && player.hasTreasure) {
     ctx.fillStyle = COLOR.treasure;
     ctx.font = `bold ${r * 1.3}px "Courier New"`;
     ctx.textAlign = 'center';
@@ -234,28 +256,15 @@ function drawPlayer(ctx, player, CELL, cellmates = []) {
     ctx.fillText('◆', cx, cy - r - r * 0.5);
   }
 
-  // Health dots above player
+  if (!showTreasure && player.hasTreasure) {
+    ctx.fillStyle = COLOR.treasure;
+    ctx.font = `bold ${r * 1.3}px "Courier New"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('◆', cx, cy - r - r * 0.5);
+  }
+
   drawHealthBar(ctx, cx, cy, r, player.health);
-
-  cellmates.forEach((mate, i) => {
-    const { cx, cy } = positions[i + 1];
-    ctx.fillStyle = '#ff6666';
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    if (mate.hasTreasure) {
-      ctx.fillStyle = COLOR.treasure;
-      ctx.font = `bold ${r * 1.3}px "Courier New"`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('◆', cx, cy - r - r * 0.5);
-    }
-
-    drawHealthBar(ctx, cx, cy, r, mate.health);
-  });
 }
 
 function drawHealthBar(ctx, cx, cy, r, health) {

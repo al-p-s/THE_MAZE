@@ -39,6 +39,7 @@ function createGameState(playerSockets, playerCount) {
         }
     }
   }
+  console.log('treasure pos:', treasureX, treasureY);
   const spawns = spawnPlayers(cells, width, height, playerCount);
 
   const players = playerSockets.map((socketId, i) =>
@@ -120,35 +121,87 @@ function nextTurn(gameState) {
   return next;
 }
 
+function getVisibleZone(player, maze, radius = 1) {
+  const zone = new Set();
+
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      const tx = player.x + dx;
+      const ty = player.y + dy;
+      if (tx < 0 || ty < 0 || tx >= maze.width || ty >= maze.height) continue;
+      if (hasLineOfSight(player.x, player.y, tx, ty, maze)) {
+        zone.add(`${tx},${ty}`);
+      }
+    }
+  }
+  return zone;
+}
+
+function hasLineOfSight(x0, y0, x1, y1, maze) {
+  let x = x0;
+  let y = y0;
+
+  while (x !== x1 || y !== y1) {
+    const dx = Math.sign(x1 - x);
+    const dy = Math.sign(y1 - y);
+    const cell = maze.cells[y][x];
+
+    if (dx !== 0 && dy !== 0) {
+      const blockedH = cell.walls[dx > 0 ? 'right' : 'left'];
+      const blockedV = cell.walls[dy > 0 ? 'bottom' : 'top'];
+      if (blockedH && blockedV) return false;
+      x += dx;
+      y += dy;
+    } else if (dx !== 0) {
+      if (cell.walls[dx > 0 ? 'right' : 'left']) return false;
+      x += dx;
+    } else {
+      if (cell.walls[dy > 0 ? 'bottom' : 'top']) return false;
+      y += dy;
+    }
+  }
+  return true;
+}
+
 function getPlayerView(gameState, socketId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player) return null;
 
   const visibleSet = player.visibleCells;
 
-  const filteredCells = gameState.maze.cells.map(row =>
-    row.map(cell => {
-      const key = `${cell.x},${cell.y}`;
-      const checkedWalls = visibleSet[key];
-      if (!checkedWalls || !checkedWalls.visited) return { x: cell.x, y: cell.y, hidden: true };
-      return {
-        ...cell,
-        walls: {
-          top: checkedWalls.top ? cell.walls.top : null,
-          right: checkedWalls.right ? cell.walls.right : null,
-          bottom: checkedWalls.bottom ? cell.walls.bottom : null,
-          left: checkedWalls.left ? cell.walls.left : null,
-        }
-      };
-    })
-  );
+  const zone = getVisibleZone(player, gameState.maze);
 
-  const cellmates = gameState.players.filter(p =>
-  p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y);
+  const filteredCells = gameState.maze.cells.map(row =>
+  row.map(cell => {
+    const key = `${cell.x},${cell.y}`;
+    const checkedWalls = visibleSet[key];
+    const inZone = zone.has(key);
+    const visited = checkedWalls?.visited;
+
+    if (!visited) return { x: cell.x, y: cell.y, hidden: true };
+    
+    return {
+      ...cell,
+      inZone,
+      walls: {
+        top: checkedWalls?.top ? cell.walls.top : null,
+        right: checkedWalls?.right ? cell.walls.right : null,
+        bottom: checkedWalls?.bottom ? cell.walls.bottom : null,
+        left: checkedWalls?.left ? cell.walls.left : null,
+      }
+    };
+  })
+);
+
+  const visiblePlayers = gameState.players.filter(p => {
+    if (!p.isAlive || p.id === socketId) return false;
+    const key = `${p.x},${p.y}`;
+    return zone.has(key) && !!visibleSet[key]?.visited;
+  });
 
   return {
     you: player,
-    cellmates,
+    visiblePlayers,
     exit: player.knownExit ? gameState.exit : null,
     maze: { ...gameState.maze, cells: filteredCells },
     treasure: gameState.treasure.destroyed ? null : gameState.treasure,
