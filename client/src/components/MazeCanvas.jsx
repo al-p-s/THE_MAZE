@@ -124,9 +124,8 @@ function drawCellFloor(ctx, cell, CELL, exit) {
 
   // POI / content tint
   if (type === 'exit') drawTile(ctx, px, py, COLOR.exit, '⬆', 'ВЫХОД', CELL);
-  else if (type === 'arsenal' && cell.inZone) drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL);
-  else if (type === 'hospital' && cell.inZone) drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL);
-
+  if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL, cell.inZone);
+  if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL, cell.inZone);
   if (content === 'mine' && cell.inZone) drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
 }
 
@@ -137,20 +136,20 @@ function drawCellWalls(ctx, cell, CELL) {
   drawWalls(ctx, cell, px, py, CELL);
 }
 
-function drawTile(ctx, px, py, color, icon, label, CELL) {
-  // Subtle tint
-  ctx.fillStyle = color + '18';
+function drawTile(ctx, px, py, color, icon, label, CELL, active = true) {
+  const alpha = active ? 'cc' : '55'; // тускло если не в зоне
+  const alphaFill = active ? '18' : '0a';
+
+  ctx.fillStyle = color + alphaFill;
   ctx.fillRect(px, py, CELL, CELL);
 
-  // Icon
-  ctx.fillStyle = color + 'cc';
+  ctx.fillStyle = color + alpha;
   ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(icon, px + CELL / 2, py + CELL / 2 - 6);
 
-  // Label
-  ctx.fillStyle = color + '99';
+  ctx.fillStyle = color + (active ? '99' : '44');
   ctx.font = `${CELL * 0.13}px "Courier New"`;
   ctx.fillText(label, px + CELL / 2, py + CELL / 2 + CELL * 0.22);
 }

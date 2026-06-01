@@ -64,13 +64,14 @@ function createGameState(playerSockets, playerCount) {
   };
 }
 
-function revealCell(player, x, y) {
+function revealCell(player, x, y, maze) {
   const key = `${x},${y}`;
   if (!player.visibleCells[key]) {
     player.visibleCells[key] = { top: false, right: false, bottom: false, left: false, visited: true };
   } else {
     player.visibleCells[key].visited = true;
   }
+  // lastSeen обновляется отдельно в getPlayerView когда клетка в zone
 }
 
 function revealWall(player, x, y, direction) {
@@ -138,29 +139,35 @@ function getVisibleZone(player, maze, radius = 1) {
 }
 
 function hasLineOfSight(x0, y0, x1, y1, maze) {
-  let x = x0;
-  let y = y0;
+  const dx = Math.sign(x1 - x0);
+  const dy = Math.sign(y1 - y0);
 
-  while (x !== x1 || y !== y1) {
-    const dx = Math.sign(x1 - x);
-    const dy = Math.sign(y1 - y);
-    const cell = maze.cells[y][x];
-
-    if (dx !== 0 && dy !== 0) {
-      const blockedH = cell.walls[dx > 0 ? 'right' : 'left'];
-      const blockedV = cell.walls[dy > 0 ? 'bottom' : 'top'];
-      if (blockedH && blockedV) return false;
+  // ортогональные — просто идём по прямой
+  if (dx === 0 || dy === 0) {
+    let x = x0, y = y0;
+    while (x !== x1 || y !== y1) {
+      const cell = maze.cells[y][x];
+      if (dx !== 0 && cell.walls[dx > 0 ? 'right' : 'left']) return false;
+      if (dy !== 0 && cell.walls[dy > 0 ? 'bottom' : 'top']) return false;
       x += dx;
-      y += dy;
-    } else if (dx !== 0) {
-      if (cell.walls[dx > 0 ? 'right' : 'left']) return false;
-      x += dx;
-    } else {
-      if (cell.walls[dy > 0 ? 'bottom' : 'top']) return false;
       y += dy;
     }
+    return true;
   }
-  return true;
+
+  // диагональ — видна только если хотя бы один ортогональный путь свободен
+  const cell = maze.cells[y0][x0];
+  const blockedH = cell.walls[dx > 0 ? 'right' : 'left'];
+  const blockedV = cell.walls[dy > 0 ? 'bottom' : 'top'];
+
+  if (blockedH && blockedV) return false; // оба пути закрыты — не видно
+
+  // проверяем через горизонталь: (x0+dx, y0) -> (x1, y1)
+  if (!blockedH && hasLineOfSight(x0 + dx, y0, x1, y1, maze)) return true;
+  // проверяем через вертикаль: (x0, y0+dy) -> (x1, y1)
+  if (!blockedV && hasLineOfSight(x0, y0 + dy, x1, y1, maze)) return true;
+
+  return false;
 }
 
 function getPlayerView(gameState, socketId) {
@@ -168,30 +175,57 @@ function getPlayerView(gameState, socketId) {
   if (!player) return null;
 
   const visibleSet = player.visibleCells;
-
   const zone = getVisibleZone(player, gameState.maze);
 
-  const filteredCells = gameState.maze.cells.map(row =>
-  row.map(cell => {
-    const key = `${cell.x},${cell.y}`;
-    const checkedWalls = visibleSet[key];
-    const inZone = zone.has(key);
-    const visited = checkedWalls?.visited;
+  // обновляем lastSeen для клеток в зоне
+  for (const key of zone) {
+    const [x, y] = key.split(',').map(Number);
+    const cell = gameState.maze.cells[y][x];
+    if (visibleSet[key]?.visited) {
+      visibleSet[key].lastSeenType = cell.type;
+      visibleSet[key].lastSeenContent = cell.content;
+    }
+  }
 
-    if (!visited) return { x: cell.x, y: cell.y, hidden: true };
-    
-    return {
-      ...cell,
-      inZone,
-      walls: {
-        top: checkedWalls?.top ? cell.walls.top : null,
-        right: checkedWalls?.right ? cell.walls.right : null,
-        bottom: checkedWalls?.bottom ? cell.walls.bottom : null,
-        left: checkedWalls?.left ? cell.walls.left : null,
+  const filteredCells = gameState.maze.cells.map(row =>
+    row.map(cell => {
+      const key = `${cell.x},${cell.y}`;
+      const cv = visibleSet[key];
+      const inZone = zone.has(key);
+      const visited = cv?.visited;
+
+      if (!visited) return { x: cell.x, y: cell.y, hidden: true };
+
+      // стены: раскрытые — отдаём реальное значение, нераскрытые — null
+      // зеркалим: проверяем также visibleCells соседа
+      const walls = {};
+      for (const dir of ['top', 'right', 'bottom', 'left']) {
+        let known = cv[dir];
+        if (!known) {
+          // проверяем зеркальную стену соседа
+          const { dx, dy } = { top:{dx:0,dy:-1}, right:{dx:1,dy:0}, bottom:{dx:0,dy:1}, left:{dx:-1,dy:0} }[dir];
+          const nk = `${cell.x+dx},${cell.y+dy}`;
+          const nv = visibleSet[nk];
+          if (nv?.[OPPOSITE[dir]]) known = true;
+        }
+        walls[dir] = known ? cell.walls[dir] : null;
       }
-    };
-  })
-);
+
+      // тип и контент — реальные если в зоне, lastSeen если нет
+      const type = inZone ? cell.type : (cv.lastSeenType ?? 'empty');
+      const content = inZone ? cell.content : (cv.lastSeenContent ?? null);
+
+      return {
+        x: cell.x, y: cell.y,
+        hidden: false,
+        visited: true,
+        inZone,
+        walls,
+        type,
+        content,
+      };
+    })
+  );
 
   const visiblePlayers = gameState.players.filter(p => {
     if (!p.isAlive || p.id === socketId) return false;

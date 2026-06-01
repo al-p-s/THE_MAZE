@@ -2,11 +2,11 @@ import EventLog from './EventLog';
 
 const CLASS_DATA = {
   pinkerton: {
-    name: 'Юджин',
-    title: 'Пинкертон',
+    name: 'Eugene',
+    title: 'Pinkerton',
     initials: 'YJ',
     color: '#c8ff00',
-    weapon: 'Револьвер',
+    weapon: 'Revolver',
     passives: [
       'Чувствует существ в 3x3',
       'Бесшумное столкновение',

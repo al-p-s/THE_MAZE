@@ -47,7 +47,7 @@ export default function App() {
 
     socket.on('game:over', ({ winner, reason }) => {
       setState(s => ({ ...s, screen: 'over', winner, winReason: reason }));
-      addEvent(`🏆 Игра окончена. Победитель: ${winner}. Причина: ${reason}`);
+      addEvent(`🏆 Game is over. Winner: ${winner}. WinCon: ${reason}`);
     });
 
     socket.on('game:event', (ev) => {
@@ -127,7 +127,7 @@ function OverScreen({ winner, myId, reason }) {
     <div style={styles.center}>
       <div style={styles.overBox}>
         <div style={{...styles.overTitle, color: won ? '#c8ff00' : '#ff4444'}}>
-          {won ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}
+          {won ? 'WINNER' : 'LOOSER'}
         </div>
         <div style={styles.overSub}>{reasonLabel(reason)}</div>
       </div>
@@ -138,24 +138,24 @@ function OverScreen({ winner, myId, reason }) {
 function formatEvent(ev) {
   const id = ev.playerId ? `#${ev.playerId.slice(0,4)}` : '';
   switch (ev.event) {
-    case 'moved': return `${id} перемещается`;
-    case 'move_blocked': return `${id} упирается в стену`;
+    case 'moved': return `${id} moved`;
+    case 'move_blocked': return `${id} hit a wall`;
     case 'attack': return ev.hit
-      ? `${id} атакует → ${ev.damage} урон${ev.debuff ? ` [${ev.debuff}]` : ''}${ev.died ? ' 💀' : ''}`
-      : `${id} промахивается`;
+      ? `${id} attacked → ${ev.damage} урон${ev.debuff ? ` [${ev.debuff}]` : ''}${ev.died ? ' 💀' : ''}`
+      : `${id} missed`;
     case 'melee': return ev.hit
-      ? `${id} рукопашная → ${ev.damage} урон${ev.died ? ' 💀' : ''}`
-      : `${id} рукопашная — промах`;
-    case 'bomb_used': return `${id} использует бомбу (${ev.mode})`;
-    case 'mine_triggered': return `${id} попадает на мину 💥${ev.died ? ' 💀' : ''}`;
-    case 'arsenal_used': return `${id} обыскивает арсенал → ${ev.reward}`;
-    case 'hospital_used': return `${id} использует госпиталь → ${ev.choice}`;
-    case 'medkit_used': return `${id} использует аптечку`;
-    case 'treasure': return `${id} → клад: ${ev.action}`;
-    case 'exit_found': return `${id} нашёл выход!`;
-    case 'cell_checked': return `${id} проверяет клетку`;
-    case 'wall_checked': return `${id} проверяет стену`;
-    case 'player_disconnected': return `${id} отключился`;
+      ? `${id} melee → ${ev.damage} damage${ev.died ? ' 💀' : ''}`
+      : `${id} melee — miss`;
+    case 'bomb_used': return `${id} used a bomb (${ev.mode})`;
+    case 'mine_triggered': return `${id} step on a mine 💥${ev.died ? ' 💀' : ''}`;
+    case 'arsenal_used': return `${id} looted Arsenal → ${ev.reward}`;
+    case 'hospital_used': return `${id} used Hospital → ${ev.choice}`;
+    case 'medkit_used': return `${id} used Medkit`;
+    case 'treasure': return `${id} → treasure: ${ev.action}`;
+    case 'exit_found': return `${id} detect the exit!`;
+    case 'cell_checked': return `${id} checked a cell`;
+    case 'wall_checked': return `${id} checked a wall`;
+    case 'player_disconnected': return `${id} disconnected`;
     default: return `${id} ${ev.event}`;
   }
 }
@@ -216,8 +216,8 @@ function makeNotification(ev, myId) {
 }
 
 function reasonLabel(r) {
-  if (r === 'last_alive') return 'Последний выживший';
-  if (r === 'exit') return 'Вышел с кладом';
+  if (r === 'last_alive') return 'Last alive!';
+  if (r === 'exit') return 'Escaped with treasure!';
   return r;
 }
 
