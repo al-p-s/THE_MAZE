@@ -42,9 +42,9 @@ const CLASS_DATA = {
     ],
   },
   amazon: {
-    name: 'Naira',
+    name: 'Athena',
     title: 'Amazon',
-    initials: 'NR',
+    initials: 'AT',
     color: '#ffee00',
     weapon: 'Grenade-gun',
     passives: [
