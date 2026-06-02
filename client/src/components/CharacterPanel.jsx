@@ -103,13 +103,13 @@ export default function CharacterPanel({ me, events }) {
 
             {/* Weapon */}
             <div style={styles.infoBlock}>
-              <div style={styles.infoLabel}>ОРУЖИЕ</div>
+              <div style={styles.infoLabel}>WEAPON</div>
               <div style={styles.infoValue}>{cls.weapon}</div>
             </div>
 
             {/* Passives */}
             <div style={styles.infoBlock}>
-              <div style={styles.infoLabel}>ПАССИВКИ</div>
+              <div style={styles.infoLabel}>PASSIVES</div>
               {cls.passives.map((p, i) => (
                 <div key={i} style={styles.passive}>
                   <span style={{ color: cls.color, marginRight: '6px' }}>›</span>{p}
