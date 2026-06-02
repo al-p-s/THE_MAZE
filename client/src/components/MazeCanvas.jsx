@@ -60,16 +60,6 @@ function draw(ctx, gameData, W, H, CELL) {
   for (const row of maze.cells)
     for (const cell of row)
       drawCellWalls(ctx, cell, CELL);
-  
-  if (gameData.treasure && !gameData.treasure.carriedBy) {
-    const t = gameData.treasure;
-    const cell = gameData.maze.cells[t.y]?.[t.x];
-    if (cell && !cell.hidden && cell.inZone) {
-      const px = t.x * CELL;
-      const py = t.y * CELL;
-      drawTreasure(ctx, px, py, CELL, t.isBuried);
-    }
-  }
 
   // Draw player
   if (you) drawPlayer(ctx, you, CELL, visiblePlayers);
@@ -121,6 +111,9 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL, cell.inZone);
   if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL, cell.inZone);
   if (content === 'mine' && cell.inZone) drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
+  if (cell.treasure) {
+    drawTreasure(ctx, px, py, CELL, cell.treasure.isBuried, cell.inZone);
+  }
 }
 
 function drawCellWalls(ctx, cell, CELL) {
@@ -310,10 +303,11 @@ function getPositions(cellX, cellY, CELL, total) {
   });
 }
 
-function drawTreasure(ctx, px, py, CELL, isBuried) {
+function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
   const cx = px + CELL / 2;
   const cy = py + CELL / 2;
   const r = CELL * 0.25;
+  ctx.globalAlpha = active ? 1 : 0.4;;
 
   if (isBuried) {
     // пунктирный кружок
@@ -346,6 +340,8 @@ function drawTreasure(ctx, px, py, CELL, isBuried) {
     ctx.textBaseline = 'middle';
     ctx.fillText('◆', cx, cy);
   }
+
+  ctx.globalAlpha = 1;
 }
 
 const styles = {

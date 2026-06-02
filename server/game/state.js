@@ -76,9 +76,10 @@ function revealCell(player, x, y, maze) {
 
 function revealWall(player, x, y, direction) {
   const key = `${x},${y}`;
-  if (player.visibleCells[key]) {
-    player.visibleCells[key][direction] = true;
+  if (!player.visibleCells[key]) {
+    player.visibleCells[key] = { top: false, right: false, bottom: false, left: false, visited: false };
   }
+  player.visibleCells[key][direction] = true;
 }
 
 function addDebuff(player, type, turns) {
@@ -133,7 +134,14 @@ function getVisibleZone(player, maze, radius = 1) {
       if (dx !== 0 && dy !== 0) {
         const h = `${player.x + dx},${player.y}`;
         const v = `${player.x},${player.y + dy}`;
-        if (!player.visibleCells[h]?.visited || !player.visibleCells[v]?.visited) continue;
+        const hVisited = player.visibleCells[h]?.visited;
+        const vVisited = player.visibleCells[v]?.visited;
+        if (!hVisited && !vVisited) continue;
+
+        const cell = maze.cells[player.y][player.x];
+        const hFree = hVisited && !cell.walls[dx > 0 ? 'right' : 'left'];
+        const vFree = vVisited && !cell.walls[dy > 0 ? 'bottom' : 'top'];
+        if (!hFree && !vFree) continue;
       }
       if (hasLineOfSight(player.x, player.y, tx, ty, maze)) {
         zone.add(`${tx},${ty}`);
@@ -191,6 +199,11 @@ function getPlayerView(gameState, socketId) {
       visibleSet[key].lastSeenContent = cell.content;
       // кэшируем реальные значения стен для известных направлений
       visibleSet[key].lastSeenWalls = { ...cell.walls };
+      visibleSet[key].lastSeenTreasure = (gameState.treasure && !gameState.treasure.destroyed &&
+        gameState.treasure.x === x && gameState.treasure.y === y &&
+        !gameState.treasure.carriedBy)
+        ? { isBuried: gameState.treasure.isBuried }
+        : null;
     }
   }
 
@@ -222,6 +235,13 @@ function getPlayerView(gameState, socketId) {
       // тип и контент — реальные если в зоне, lastSeen если нет
       const type = inZone ? cell.type : (cv.lastSeenType ?? 'empty');
       const content = inZone ? cell.content : (cv.lastSeenContent ?? null);
+      const treasureHere = inZone
+        ? (gameState.treasure && !gameState.treasure.destroyed &&
+          gameState.treasure.x === cell.x && gameState.treasure.y === cell.y &&
+          !gameState.treasure.carriedBy)
+          ? { isBuried: gameState.treasure.isBuried }
+          : null
+        : (cv.lastSeenTreasure ?? null);
 
       return {
         x: cell.x, y: cell.y,
@@ -231,6 +251,7 @@ function getPlayerView(gameState, socketId) {
         walls,
         type,
         content,
+        treasure: treasureHere,
       };
     })
   );
