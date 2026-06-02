@@ -5,8 +5,8 @@ const CLASS_DATA = {
     name: 'Eugene',
     title: 'Pinkerton',
     initials: 'EG',
-    color: '#00ffdd',
-    weapon: 'Revolver',
+    color: '#9dfff2',
+    weapon: 'Pistole',
     passives: [
       'WIP',
     ],
@@ -15,7 +15,7 @@ const CLASS_DATA = {
     name: 'Luther',
     title: 'Reaper',
     initials: 'LT',
-    color: '#000000',
+    color: '#a10000',
     weapon: 'Dagger',
     passives: [
       'WIP',
@@ -25,7 +25,7 @@ const CLASS_DATA = {
     name: 'Vivian',
     title: 'Witch',
     initials: 'VV',
-    color: '#51c41c',
+    color: '#64b33f',
     weapon: 'Magic',
     passives: [
       'WIP',
@@ -35,7 +35,7 @@ const CLASS_DATA = {
     name: 'Klaus',
     title: 'Pyromaniac',
     initials: 'KL',
-    color: '#ff6600',
+    color: '#ff4800',
     weapon: 'Explosive pistol',
     passives: [
       'WIP'
@@ -45,7 +45,7 @@ const CLASS_DATA = {
     name: 'Athena',
     title: 'Amazon',
     initials: 'AT',
-    color: '#ffee00',
+    color: '#ffbb00',
     weapon: 'Grenade-gun',
     passives: [
       'WIP'
@@ -55,7 +55,7 @@ const CLASS_DATA = {
     name: 'Lilith',
     title: 'Succubus',
     initials: 'LL',
-    color: '#f8004a',
+    color: '#ff0055',
     weapon: 'Dual pistols',
     passives: [
       'WIP'
@@ -65,7 +65,7 @@ const CLASS_DATA = {
     name: 'Fenrir',
     title: 'Werewolf',
     initials: 'FN',
-    color: '#88aaff',
+    color: '#c9abab',
     weapon: 'Claws / Blunderbuss',
     passives: [
       'WIP'
@@ -73,10 +73,10 @@ const CLASS_DATA = {
   },
   trickster: {
     name: 'Charlotte',
-    title: 'Trickster',
+    title: 'Cutie',
     initials: 'CR',
-    color: '#ae00ff',
-    weapon: 'Pistole',
+    color: '#9200d6',
+    weapon: 'Revolver',
     passives: [
       'WIP'
     ],
