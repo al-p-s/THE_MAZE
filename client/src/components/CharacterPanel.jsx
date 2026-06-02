@@ -4,71 +4,82 @@ const CLASS_DATA = {
   pinkerton: {
     name: 'Eugene',
     title: 'Pinkerton',
-    initials: 'YJ',
+    initials: 'EG',
     color: '#c8ff00',
     weapon: 'Revolver',
     passives: [
-      'Чувствует существ в 3x3',
-      'Бесшумное столкновение',
-      'Не тратит ОД на поиск выхода',
-      '1x перебросить кубик',
+      'WIP',
     ],
   },
   reaper: {
-    name: 'Лютер',
-    title: 'Жнец',
+    name: 'Luther',
+    title: 'Reaper',
     initials: 'LT',
     color: '#aa44ff',
-    weapon: 'Кинжал',
-    passives: ['Прыжок через стену (1 ОД)', 'Удар после прыжка бесплатно', '+0.5 урона после прыжка'],
+    weapon: 'Dagger',
+    passives: [
+      'WIP',
+    ],
   },
   witch: {
-    name: 'Вивиан',
-    title: 'Ведьма',
+    name: 'Vivian',
+    title: 'Witch',
     initials: 'VV',
     color: '#ff44cc',
-    weapon: 'Магия',
-    passives: ['Использует ману вместо патронов', 'Телепортация', 'Создание бомбы без ОД'],
+    weapon: 'Magic',
+    passives: [
+      'WIP',
+    ],
   },
-  pyroman: {
-    name: 'Клаус',
-    title: 'Пироман',
+  pyromaniac: {
+    name: 'Klaus',
+    title: 'Pyromaniac',
     initials: 'KL',
     color: '#ff6600',
-    weapon: 'Взрывной пистолет',
-    passives: ['Пробивает 1 стену', 'Коктейль Молотова (1 ОД)'],
+    weapon: 'Explosive pistol',
+    passives: [
+      'WIP'
+    ],
   },
   amazon: {
-    name: 'Астрея',
-    title: 'Амазонка',
+    name: 'Astraea',
+    title: 'Amazon',
     initials: 'AS',
     color: '#00ccff',
-    weapon: 'Гранатомёт',
-    passives: ['Барс (1 хп, 1 ОД/ход)', 'Барс с бомбой взрывается при столкновении'],
+    weapon: 'Grenade-gun',
+    passives: [
+      'WIP'
+    ],
   },
   succubus: {
-    name: 'Лилит',
-    title: 'Суккуб',
+    name: 'Lilith',
+    title: 'Succubus',
     initials: 'LL',
     color: '#ff2266',
-    weapon: 'Парные пистолеты',
-    passives: ['2 патрона за выстрел', 'Соблазнение игрока (3×)'],
+    weapon: 'Dual pistols',
+    passives: [
+      'WIP'
+    ],
   },
   werewolf: {
-    name: 'Фенрир',
-    title: 'Оборотень',
+    name: 'Fenrir',
+    title: 'Werewolf',
     initials: 'FN',
     color: '#88aaff',
-    weapon: 'Когти / Мушкетон',
-    passives: ['Смена формы (1 ОД)', 'В форме зверя: усиленный ближний бой'],
+    weapon: 'Claws / Blunderbuss',
+    passives: [
+      'WIP'
+    ],
   },
   trickster: {
-    name: 'Шарлотта',
-    title: 'Плутовка',
-    initials: 'SH',
+    name: 'Charlotte',
+    title: 'Trickster',
+    initials: 'CR',
     color: '#ffcc00',
-    weapon: 'Пистоль',
-    passives: ['Копия на клетке (1 ОД)', 'Перемещение после атаки бесплатно'],
+    weapon: 'Pistole',
+    passives: [
+      'WIP'
+    ],
   },
 };
 
