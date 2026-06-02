@@ -15,13 +15,15 @@ function actionMove(gameState, socketId, direction) {
   const isOutside = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
   if (cell.walls[direction] && !isOutside) {
+    const alreadyKnown = !!player.visibleCells[`${player.x},${player.y}`]?.[direction];
+    if (alreadyKnown) player.actionPoints += 1;
     revealWall(player, player.x, player.y, direction);
     const key = `${nx},${ny}`;
     if (!player.visibleCells[key]) {
       player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
     }
     player.visibleCells[key][OPPOSITE[direction]] = true;
-    return { ok: true, blocked: true, isEdge: false };
+    return { ok: true, blocked: true, isEdge: false, alreadyKnown };
   }
 
   revealWall(player, player.x, player.y, direction);
@@ -34,12 +36,11 @@ function actionMove(gameState, socketId, direction) {
     player.y -= dy;
     const exit = gameState.exit;
     const isExit = exit.x === player.x && exit.y === player.y && exit.direction === direction;
-    const exitKnown = player.knownExit;
 
-    if (!exitKnown) {
+    if (isExit && !player.knownExit) {
       revealWall(player, player.x, player.y, direction);
-      if (isExit) player.knownExit = true;
-      return { ok: true, blocked: true, exitFound: isExit, isEdge: true };
+      player.knownExit = true;
+      return { ok: true, blocked: true, exitFound: true, isEdge: true, alreadyKnown: false };
     }
 
     if (isExit) {
@@ -48,8 +49,17 @@ function actionMove(gameState, socketId, direction) {
         gameState.winner = socketId;
         return { ok: true, blocked: false, exit: true, won: true };
       }
+      player.actionPoints += 1;
+      return { ok: true, blocked: true, isEdge: true, alreadyKnown: true };
     }
-    return { ok: true, blocked: true, isEdge: isOutside };
+
+    const wallKey = `${player.x},${player.y}_${direction}`;
+    if (!player.checkedEdges) player.checkedEdges = new Set();
+    const alreadyKnown = player.checkedEdges.has(wallKey);
+    if (!alreadyKnown) player.checkedEdges.add(wallKey);
+    revealWall(player, player.x, player.y, direction);
+    if (alreadyKnown) player.actionPoints += 1;
+    return { ok: true, blocked: true, isEdge: true, alreadyKnown };
   }
 
   const landedCell = getCell(gameState.maze, player.x, player.y);
@@ -84,8 +94,11 @@ function actionCheckWall(gameState, socketId, direction) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
   if (!DIRS[direction]) return { ok: false };
-
+  const wallKey = `${player.x},${player.y}`;
+  const alreadyKnown = !!player.visibleCells[wallKey]?.[direction];
+  if (alreadyKnown) return { ok: true, alreadyKnown: true, isEdge: false, isExit: false, hasWall: null };
   player.actionPoints -= 1;
+
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
   const ny = player.y + dy;
@@ -110,7 +123,7 @@ function actionCheckWall(gameState, socketId, direction) {
     }
   }
 
-  return { ok: true, isEdge, isExit, hasWall };
+  return { ok: true, isEdge, isExit, hasWall, alreadyKnown };
 }
 
 function actionUseHospital(gameState, socketId, choice) {
@@ -232,11 +245,13 @@ function actionCheckCell(gameState, socketId, direction) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
   if (!DIRS[direction]) return { ok: false };
-
-  player.actionPoints -= 1;
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
   const ny = player.y + dy;
+  if (nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height)
+    return { ok: false };
+
+  player.actionPoints -= 1;
   const cell = getCell(gameState.maze, nx, ny);
   if (!cell) return { ok: true, content: null };
 

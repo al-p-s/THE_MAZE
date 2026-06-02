@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
     }
     if (result.exitFound) {
       socket.emit('game:event', { event: 'exit_found', playerId: socket.id, direction });
-    } else {
+    } else if (!result.alreadyKnown) {
       io.emit('game:event', { event: result.blocked ? 'move_blocked' : 'moved', playerId: socket.id, direction, isEdge: result.isEdge ?? false });
     }
     const p = gameState.players.find(p => p.id === socket.id);
@@ -102,7 +102,9 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionCheckWall(gameState, socket.id, direction);
     if (!result.ok) return;
-    socket.emit('game:event', { event: result.isExit ? 'exit_found' : 'wall_checked', playerId: socket.id, direction, isEdge: result.isEdge, hasWall: result.hasWall });
+    if (!result.alreadyKnown) {
+      socket.emit('game:event', { event: result.isExit ? 'exit_found' : 'wall_checked', playerId: socket.id, direction, isEdge: result.isEdge, hasWall: result.hasWall });
+    }
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();

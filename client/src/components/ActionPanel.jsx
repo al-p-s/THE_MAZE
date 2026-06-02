@@ -53,12 +53,12 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     <div style={styles.root}>
       {/* Mode selector */}
       <div style={styles.modeRow}>
-        {modeBtn('move', 'ДВИЖ', COLOR.accent)}
-        {modeBtn('attack', 'АТАКА', '#ff4488')}
-        {modeBtn('bomb_wall', 'ВЗРЫВ', COLOR.warn)}
-        {modeBtn('bomb_mine', 'МИНА', COLOR.danger)}
-        {modeBtn('check_wall', 'СТ?', '#aaa')}
-        {modeBtn('check_cell', 'КЛ?', '#aaa')}
+        {modeBtn('move', 'MOVE', COLOR.accent)}
+        {modeBtn('attack', 'ATTACK', '#ff4488')}
+        {modeBtn('bomb_wall', 'BOOM', COLOR.warn)}
+        {modeBtn('bomb_mine', 'MINE', COLOR.danger)}
+        {modeBtn('check_wall', 'WALL?', '#aaa')}
+        {modeBtn('check_cell', 'CELL?', '#aaa')}
       </div>
 
       {/* Direction pad */}
@@ -86,7 +86,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
             disabled={disabled || me.bombs < 1}
             onClick={() => act('action:use_bomb', { mode: 'mine' })}
           >
-            ЗАЛОЖИТЬ МИНУ
+            PLANT A MINE
           </button>
         </div>
       )}
@@ -94,25 +94,25 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       {/* Contextual actions */}
       <div style={styles.contextRow}>
         {/* Melee if ranged weapon */}
-        <ActionBtn label="РУКОП." disabled={disabled} onClick={() => act('action:melee')} />
+        <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />
 
         {onArsenal && <ActionBtn label="АРСЕНАЛ" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 
         {onHospital && <>
-          <ActionBtn label="ЛЕЧЕНИЕ" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
-          <ActionBtn label="АПТЕЧКА" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
+          <ActionBtn label="HEAL" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
+          <ActionBtn label="MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
         </>}
 
-        {hasMedkit && <ActionBtn label="ИСПОЛЬ. АПТЕЧКУ" color='#ff4488' disabled={disabled} onClick={() => act('action:use_medkit')} />}
+        {hasMedkit && <ActionBtn label="USE MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_medkit')} />}
 
         {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
-          <ActionBtn label="ПОДОБРАТЬ КЛАД" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
+          <ActionBtn label="PICK UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
 
         {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
-          <ActionBtn label="ВЫКОПАТЬ КЛАД" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
+          <ActionBtn label="DIG UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
 
         {hasTreasure &&
-          <ActionBtn label="ЗАКОПАТЬ КЛАД" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
+          <ActionBtn label="BURY A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
       </div>
 
       {/* End turn */}
@@ -121,7 +121,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         disabled={!isMyTurn}
         onClick={() => act('action:end_turn')}
       >
-        ЗАВЕРШИТЬ ХОД
+        END TURN
       </button>
     </div>
   );

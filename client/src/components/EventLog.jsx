@@ -9,10 +9,10 @@ export default function EventLog({ events }) {
 
   return (
     <div style={styles.root}>
-      <div style={styles.header}>ЛОГ</div>
+      <div style={styles.header}>LOG</div>
       <div style={styles.list}>
         {events.length === 0
-          ? <div style={styles.empty}>— нет событий —</div>
+          ? <div style={styles.empty}>— no events —</div>
           : events.map((msg, i) => (
             <div key={i} style={{ ...styles.entry, opacity: 0.4 + 0.6 * ((i + 1) / events.length) }}>
               <span style={styles.index}>{i + 1}</span>

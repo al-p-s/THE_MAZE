@@ -49,13 +49,13 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       {/* Turn banner */}
       <div style={{ ...styles.turnBanner, background: isMyTurn ? COLOR.accent + '22' : '#1a1a1a', borderColor: isMyTurn ? COLOR.accent : '#333' }}>
         <span style={{ color: isMyTurn ? COLOR.accent : '#666', fontSize: '11px', letterSpacing: '2px' }}>
-          {isMyTurn ? '▶ ВАШ ХОД' : `ХОД ИГРОКА #${currentTurn?.playerIndex ?? '?'}`}
+          {isMyTurn ? '▶ YOUR TURN' : `TURN OF PLAYER #${currentTurn?.playerIndex ?? '?'}`}
         </span>
       </div>
 
       {/* AP */}
       <div style={styles.section}>
-        <div style={styles.label}>ОД</div>
+        <div style={styles.label}>AP</div>
         <div style={styles.apRow}>
           {[0, 1].map(i => (
             <div key={i} style={{ ...styles.apDot, background: i < me.actionPoints ? COLOR.accent : COLOR.dim }} />
@@ -64,7 +64,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       </div>
 
       {/* Health */}
-      <div style={styles.label}>ЗДОРОВЬЕ</div>
+      <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <canvas ref={hpCanvasRef} width={52} height={10} />
         <span style={{ color: '#cc3333', fontSize: '14px', fontWeight: 'bold' }}>
@@ -75,7 +75,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       {/* Debuffs */}
       {me.debuffs.length > 0 && (
         <div style={styles.section}>
-          <div style={styles.label}>ДЕБАФФЫ</div>
+          <div style={styles.label}>DEBUFFS</div>
           <div style={styles.debuffRow}>
             {me.debuffs.map((d, i) => (
               <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '66' }}>
@@ -88,10 +88,10 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
 
       {/* Inventory */}
       <div style={styles.section}>
-        <div style={styles.label}>ИНВЕНТАРЬ</div>
+        <div style={styles.label}>KIT</div>
         <div style={styles.invGrid}>
-          <InvItem icon="🔹" label="патроны" count={me.ammo} />
-          <InvItem icon="💣" label="бомбы" count={me.bombs} />
+          <InvItem icon="🔹" label="ammo" count={me.ammo} />
+          <InvItem icon="💣" label="bombs" count={me.bombs} />
           {me.items?.filter(i => i === 'medkit').length > 0 &&
             <InvItem icon="+" label="аптечки" count={me.items.filter(i => i === 'medkit').length} color={COLOR.hp} />}
           {me.hasTreasure && <InvItem icon="◆" label="клад" count="" color="#ffd700" />}
