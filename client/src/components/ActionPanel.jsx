@@ -49,6 +49,8 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const hasTreasure = me.hasTreasure;
   const hasMedkit = me.items?.includes('medkit');
 
+  const hasCellmate = gameData?.visiblePlayers?.some(p => p.x === me.x && p.y === me.y);
+
   return (
     <div style={styles.root}>
       {/* Mode selector */}
@@ -94,7 +96,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       {/* Contextual actions */}
       <div style={styles.contextRow}>
         {/* Melee if ranged weapon */}
-        <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />
+        {hasCellmate && <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />}
 
         {onArsenal && <ActionBtn label="АРСЕНАЛ" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 

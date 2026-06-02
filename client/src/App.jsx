@@ -193,6 +193,16 @@ function makeNotification(ev, myId) {
       ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
       : { text: 'DANGER!\nSOMEONE IS SHOOTING AT YOU!', color: '#ff4444' };
   }
+  if (ev.event === 'melee' && ev.playerId === myId) {
+    return ev.hit
+      ? { text: `HIT! -${ev.damage}`, color: '#ff4488' }
+      : { text: 'MISS!', color: '#555' };
+  }
+  if (ev.event === 'melee' && ev.targetId === myId) {
+    return ev.hit
+      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: 'MELEE HIT!' }
+      : { text: 'DANGER!\nMELEE MISS', color: '#ff4444' };
+  }
   if (ev.event === 'bomb_used' && ev.playerId === myId) {
     return ev.mode === 'wall'
       ? { text: 'BOOM!', color: '#ffaa00' }
