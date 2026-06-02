@@ -20,34 +20,28 @@ const COLOR = {
 
 export default function MazeCanvas({ gameData }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    console.log('gameData', gameData);
-    if (!gameData) return;
+    if (!gameData || !containerRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const { maze } = gameData;
-    const MAX_SIZE = Math.min(window.innerWidth - 560, window.innerHeight - 40);
+    const { offsetWidth, offsetHeight } = containerRef.current;
+    const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
     const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
+    canvas.width = maze.width * CELL;
+    canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
     draw(ctx, gameData, canvas.width, canvas.height, CELL);
   }, [gameData]);
 
   if (!gameData) return null;
 
-  const { maze } = gameData;
-  const MAX_SIZE = Math.min(window.innerWidth - 300, window.innerHeight - 40);
-  const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
-  const W = maze.width * CELL;
-  const H = maze.height * CELL;
-
   return (
-    <canvas
-      ref={canvasRef}
-      width={W}
-      height={H}
-      style={styles.canvas}
-    />
+    <div ref={containerRef} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <canvas ref={canvasRef} style={styles.canvas} />
+    </div>
   );
 }
 

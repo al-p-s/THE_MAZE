@@ -130,6 +130,11 @@ function getVisibleZone(player, maze, radius = 1) {
       const tx = player.x + dx;
       const ty = player.y + dy;
       if (tx < 0 || ty < 0 || tx >= maze.width || ty >= maze.height) continue;
+      if (dx !== 0 && dy !== 0) {
+        const h = `${player.x + dx},${player.y}`;
+        const v = `${player.x},${player.y + dy}`;
+        if (!player.visibleCells[h]?.visited || !player.visibleCells[v]?.visited) continue;
+      }
       if (hasLineOfSight(player.x, player.y, tx, ty, maze)) {
         zone.add(`${tx},${ty}`);
       }
@@ -184,6 +189,8 @@ function getPlayerView(gameState, socketId) {
     if (visibleSet[key]?.visited) {
       visibleSet[key].lastSeenType = cell.type;
       visibleSet[key].lastSeenContent = cell.content;
+      // кэшируем реальные значения стен для известных направлений
+      visibleSet[key].lastSeenWalls = { ...cell.walls };
     }
   }
 
@@ -208,7 +215,8 @@ function getPlayerView(gameState, socketId) {
           const nv = visibleSet[nk];
           if (nv?.[OPPOSITE[dir]]) known = true;
         }
-        walls[dir] = known ? cell.walls[dir] : null;
+        const wallSource = inZone ? cell.walls : (cv.lastSeenWalls ?? cell.walls);
+        walls[dir] = known ? wallSource[dir] : null;
       }
 
       // тип и контент — реальные если в зоне, lastSeen если нет

@@ -54,7 +54,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       {/* Mode selector */}
       <div style={styles.modeRow}>
         {modeBtn('move', 'MOVE', COLOR.accent)}
-        {modeBtn('attack', 'ATCK', '#ff4488')}
+        {modeBtn('attack', 'ATTACK', '#ff4488')}
         {modeBtn('bomb_wall', 'BOOM', COLOR.warn)}
         {modeBtn('bomb_mine', 'MINE', COLOR.danger)}
         {modeBtn('check_wall', 'WALL?', '#aaa')}
