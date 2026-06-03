@@ -242,7 +242,7 @@ const styles = {
     overflow: 'hidden',
   },
   leftbar: {
-    width: '280px',
+    width: '320px',
     borderRight: '1px solid #222',
     flexShrink: 0,
     display: 'flex',
@@ -257,7 +257,7 @@ const styles = {
     overflow: 'hidden',
   },
   rightbar: {
-    width: '280px',
+    width: '320px',
     display: 'flex',
     flexDirection: 'column',
     borderLeft: '1px solid #222',

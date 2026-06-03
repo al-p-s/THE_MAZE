@@ -20,7 +20,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const disabled = !isMyTurn || !me || me.actionPoints < 1;
   const actRef = useRef(act);
   useEffect(() => { actRef.current = act; }, [act]);
-  console.log('ActionPanel render', { isMyTurn, disabled, mode });
+
+  const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
+  const onArsenal = cell?.type === 'arsenal';
+  const onHospital = cell?.type === 'hospital';
 
   useEffect(() => {
     const KEY_DIR = {
@@ -40,6 +43,19 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         setMode(MODE_KEYS[key]);
         return;
       }
+      if (key === 'g' || key === 'п') {
+        actRef.current('action:end_turn');
+        return;
+      }
+      if (key === 'q' || key === 'й') {
+        if (onArsenal) actRef.current('action:use_arsenal');
+        else if (onHospital) actRef.current('action:use_hospital', { choice: 'heal' });
+        return;
+      }
+      if ((key === 'e' || key === 'у') && onHospital) {
+        actRef.current('action:use_hospital', { choice: 'medkit' });
+        return;
+      }
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
@@ -53,7 +69,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital]);
 
   if (!me) return null;
 
@@ -79,9 +95,6 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   );
 
   // Check if on POI
-  const cell = gameData?.maze?.cells?.[me.y]?.[me.x];
-  const onArsenal = cell?.type === 'arsenal';
-  const onHospital = cell?.type === 'hospital';
   const onTreasure = gameData?.treasure && me.x === gameData.treasure?.x && me.y === gameData.treasure?.y;
   const hasTreasure = me.hasTreasure;
   const hasMedkit = me.items?.includes('medkit');
@@ -92,10 +105,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     <div style={styles.root}>
       {/* Mode selector */}
       <div style={styles.modeRow}>
-        {modeBtn('move', '1 MOVE', COLOR.accent)}
-        {modeBtn('attack', '2 ATTACK', '#ff4488')}
-        {modeBtn('bomb_wall', '3 BOOM', COLOR.warn)}
-        {modeBtn('check', '4 CHECK', '#aaa')}
+        {modeBtn('move', '[1] MOVE', COLOR.accent)}
+        {modeBtn('attack', '[2] ATTACK', '#ff4488')}
+        {modeBtn('bomb_wall', '[3] BOMB', COLOR.warn)}
+        {modeBtn('check', '[4] CHECK', '#aaa')}
       </div>
 
       {/* Direction pad */}
@@ -106,44 +119,38 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
               if (mode === 'move') return dirBtn(dir, 'action:move');
               if (mode === 'attack') return dirBtn(dir, 'action:attack');
               if (mode === 'bomb_wall') return dirBtn(dir, 'action:use_bomb', { mode: 'wall' });
-              if (mode === 'check') return dirBtn(dir, 'action:check');
+              if (mode === 'check') return dirBtn(dir, 'action:check_wall');
               return null;
             })}
             <div style={styles.dpadCenter}>
               {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
             </div>
           </div>
-          {mode === 'bomb_wall' && (
-            <div style={{ fontSize: '9px', color: COLOR.danger, letterSpacing: '1px', textAlign: 'center' }}>
-              [F] — PLANT MINE
-            </div>
-          )}
+          <div style={{ fontSize: '13px', letterSpacing: '1px', textAlign: 'center', height: '14px', color: COLOR.danger }}>
+            {mode === 'bomb_wall' ? '[F] — PLANT MINE' : ''}
+          </div>
         </>
       )}
 
-      {/* Mine mode */}
-      {mode === 'bomb_mine' && (
-        <div style={styles.singleAction}>
-          <button
-            style={{ ...styles.bigBtn, opacity: (disabled || me.bombs < 1) ? 0.3 : 1 }}
-            disabled={disabled || me.bombs < 1}
-            onClick={() => act('action:use_bomb', { mode: 'mine' })}
-          >
-            PLANT A MINE
-          </button>
-        </div>
-      )}
+      {/* End turn */}
+      <button
+        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.3 }}
+        disabled={!isMyTurn}
+        onClick={() => act('action:end_turn')}
+      >
+        [G] END TURN
+      </button>
 
       {/* Contextual actions */}
       <div style={styles.contextRow}>
         {/* Melee if ranged weapon */}
         {hasCellmate && <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />}
 
-        {onArsenal && <ActionBtn label="АРСЕНАЛ" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
+        {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 
         {onHospital && <>
-          <ActionBtn label="HEAL" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
-          <ActionBtn label="MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
+          <ActionBtn label="[Q] HEAL" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
+          <ActionBtn label="[E] MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
         </>}
 
         {hasMedkit && <ActionBtn label="USE MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_medkit')} />}
@@ -157,15 +164,6 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         {hasTreasure &&
           <ActionBtn label="BURY A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
       </div>
-
-      {/* End turn */}
-      <button
-        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.3 }}
-        disabled={!isMyTurn}
-        onClick={() => act('action:end_turn')}
-      >
-        END TURN
-      </button>
     </div>
   );
 }
@@ -186,7 +184,6 @@ const styles = {
   root: {
     padding: '10px 12px',
     borderBottom: `1px solid ${COLOR.border}`,
-    fontFamily: "'Courier New', monospace",
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
@@ -200,7 +197,7 @@ const styles = {
     background: 'none',
     border: '1px solid',
     padding: '3px 6px',
-    fontSize: '9px',
+    fontSize: '12px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -212,6 +209,7 @@ const styles = {
     gridTemplateRows: 'repeat(3, 36px)',
     gap: '3px',
     alignSelf: 'center',
+    marginTop: '4px',
   },
   dpadCenter: {
     gridArea: '2/2',
@@ -219,7 +217,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#333',
-    fontSize: '14px',
+    fontSize: '18px',
   },
   dirBtn: {
     background: '#1a1a1a',
@@ -237,16 +235,6 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
   },
-  bigBtn: {
-    background: '#1a0000',
-    border: `1px solid ${COLOR.danger}`,
-    color: COLOR.danger,
-    padding: '8px 20px',
-    fontSize: '11px',
-    letterSpacing: '2px',
-    cursor: 'pointer',
-    borderRadius: '2px',
-  },
   contextRow: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -256,7 +244,7 @@ const styles = {
     background: 'none',
     border: '1px solid',
     padding: '3px 8px',
-    fontSize: '9px',
+    fontSize: '13px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -266,7 +254,7 @@ const styles = {
     border: `1px solid #333`,
     color: '#555',
     padding: '6px',
-    fontSize: '9px',
+    fontSize: '13px',
     letterSpacing: '2px',
     cursor: 'pointer',
     borderRadius: '2px',

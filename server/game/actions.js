@@ -67,15 +67,23 @@ function actionMove(gameState, socketId, direction) {
     landedCell.content = null;
     const owner = landedCell.mineOwner;
     landedCell.mineOwner = null;
-    player.health -= 1.5;
-    if (player.hasTreasure) {
-      player.hasTreasure = false;
-      gameState.treasure.carriedBy = null;
-      gameState.treasure.x = player.x;
-      gameState.treasure.y = player.y;
-      gameState.treasure.isBuried = false;
+
+    const victims = gameState.players.filter(p =>
+      p.isAlive && ((p.x === player.x && p.y === player.y) || p.id === socketId)
+    );
+    for (const v of victims) {
+      v.health -= 1.5;
+      if (v.hasTreasure) {
+        v.hasTreasure = false;
+        gameState.treasure.carriedBy = null;
+        gameState.treasure.x = v.x;
+        gameState.treasure.y = v.y;
+        gameState.treasure.isBuried = false;
+      }
+      if (v.health <= 0) v.isAlive = false;
     }
-    const died = player.health <= 0;
+
+    const died = victims.some(v => !v.isAlive);
     if (died) player.isAlive = false;
 
     revealCell(player, player.x, player.y);

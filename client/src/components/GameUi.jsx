@@ -48,7 +48,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
     <div style={styles.root}>
       {/* Turn banner */}
       <div style={{ ...styles.turnBanner, background: isMyTurn ? COLOR.accent + '22' : '#1a1a1a', borderColor: isMyTurn ? COLOR.accent : '#333' }}>
-        <span style={{ color: isMyTurn ? COLOR.accent : '#666', fontSize: '11px', letterSpacing: '2px' }}>
+        <span style={{ color: isMyTurn ? COLOR.accent : '#666', fontSize: '16px', letterSpacing: '2px' }}>
           {isMyTurn ? '▶ YOUR TURN' : `TURN OF PLAYER #${currentTurn?.playerIndex ?? '?'}`}
         </span>
       </div>
@@ -67,24 +67,25 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <canvas ref={hpCanvasRef} width={72} height={14} />
-        <span style={{ color: '#cc3333', fontSize: '18px', fontWeight: 'bold' }}>
+        <span style={{ color: '#cc3333', fontSize: '16px', fontWeight: 'bold' }}>
           {me.health} / 3
         </span>
       </div>
 
       {/* Debuffs */}
-      {me.debuffs.length > 0 && (
-        <div style={styles.section}>
-          <div style={styles.label}>DEBUFFS</div>
-          <div style={styles.debuffRow}>
-            {me.debuffs.map((d, i) => (
-              <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '66' }}>
-                {d.type} {d.turnsLeft}
-              </span>
-            ))}
-          </div>
+      <div style={styles.section}>
+        <div style={styles.label}>DEBUFFS</div>
+        <div style={styles.debuffRow}>
+          {me.debuffs.length === 0
+            ? <span style={{ color: '#333', fontSize: '10px' }}>—</span>
+            : me.debuffs.map((d, i) => (
+                <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '66' }}>
+                  {d.type} {d.turnsLeft}
+                </span>
+              ))
+          }
         </div>
-      )}
+      </div>
 
       {/* Inventory */}
       <div style={styles.section}>
@@ -92,9 +93,8 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         <div style={styles.invGrid}>
           <InvItem icon="🔹" label="ammo" count={me.ammo} />
           <InvItem icon="💣" label="bombs" count={me.bombs} />
-          {me.items?.filter(i => i === 'medkit').length > 0 &&
-            <InvItem icon="+" label="аптечки" count={me.items.filter(i => i === 'medkit').length} color={COLOR.hp} />}
-          {me.hasTreasure && <InvItem icon="◆" label="клад" count="" color="#ffd700" />}
+          <InvItem icon="+" label="medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
+          {me.hasTreasure && <InvItem icon="◆" label="treasure" count="" color="#ffd700" />}
         </div>
       </div>
     </div>
@@ -104,9 +104,9 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
 function InvItem({ icon, label, count, color }) {
   return (
     <div style={styles.invItem}>
-      <span style={{ color: color || '#888', fontSize: '14px' }}>{icon}</span>
-      <span style={{ color: '#aaa', fontSize: '11px', marginLeft: '4px' }}>{label}</span>
-      <span style={{ color: color || COLOR.accent, fontSize: '13px', marginLeft: 'auto', fontWeight: 'bold' }}>{count}</span>
+      <span style={{ color: color || '#888', fontSize: '13px' }}>{icon}</span>
+      <span style={{ color: '#aaa', fontSize: '16px', marginLeft: '4px' }}>{label}</span>
+      <span style={{ color: color || COLOR.accent, fontSize: '15px', marginLeft: 'auto', fontWeight: 'bold' }}>{count}</span>
     </div>
   );
 }
@@ -122,7 +122,6 @@ const styles = {
   root: {
     padding: '12px',
     borderBottom: `1px solid ${COLOR.border}`,
-    fontFamily: "'Courier New', monospace",
   },
   turnBanner: {
     padding: '6px 10px',
@@ -145,8 +144,8 @@ const styles = {
     gap: '6px',
   },
   apDot: {
-    width: '18px',
-    height: '18px',
+    width: '17px',
+    height: '17px',
     borderRadius: '50%',
     transition: 'background 0.2s',
   },
