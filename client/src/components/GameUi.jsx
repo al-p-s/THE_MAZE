@@ -53,13 +53,28 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         </span>
       </div>
 
-      {/* AP */}
-      <div style={styles.section}>
-        <div style={styles.label}>AP</div>
-        <div style={styles.apRow}>
-          {[0, 1].map(i => (
-            <div key={i} style={{ ...styles.apDot, background: i < me.actionPoints ? COLOR.accent : COLOR.dim }} />
-          ))}
+      {/* AP & Debuffs */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div>
+          <div style={styles.label}>AP</div>
+          <div style={styles.apRow}>
+            {[0, 1].map(i => (
+              <div key={i} style={{ ...styles.apDot, background: i < me.actionPoints ? COLOR.accent : COLOR.dim }} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={styles.label}>DEBUFFS</div>
+          <div style={styles.debuffRow}>
+            {me.debuffs.length === 0
+              ? <span style={{ color: '#333', fontSize: '13px' }}></span>
+              : me.debuffs.map((d, i) => (
+                  <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '66' }}>
+                    {d.type} {d.turnsLeft}
+                  </span>
+                ))
+            }
+          </div>
         </div>
       </div>
 
@@ -67,33 +82,18 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <canvas ref={hpCanvasRef} width={72} height={14} />
-        <span style={{ color: '#cc3333', fontSize: '16px', fontWeight: 'bold' }}>
+        <span style={{ color: '#cc3333', fontSize: '16px' }}>
           {me.health} / 3
         </span>
-      </div>
-
-      {/* Debuffs */}
-      <div style={styles.section}>
-        <div style={styles.label}>DEBUFFS</div>
-        <div style={styles.debuffRow}>
-          {me.debuffs.length === 0
-            ? <span style={{ color: '#333', fontSize: '10px' }}>—</span>
-            : me.debuffs.map((d, i) => (
-                <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '66' }}>
-                  {d.type} {d.turnsLeft}
-                </span>
-              ))
-          }
-        </div>
       </div>
 
       {/* Inventory */}
       <div style={styles.section}>
         <div style={styles.label}>KIT</div>
         <div style={styles.invGrid}>
-          <InvItem icon="🔹" label="ammo" count={me.ammo} />
-          <InvItem icon="💣" label="bombs" count={me.bombs} />
-          <InvItem icon="+" label="medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
+          <InvItem icon="🔹" label="AMMO" count={me.ammo} />
+          <InvItem icon="💣" label="BOMBS" count={me.bombs} />
+          <InvItem icon="+" label="MEDKITS" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
         </div>
       </div>
     </div>
@@ -103,9 +103,9 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
 function InvItem({ icon, label, count, color }) {
   return (
     <div style={styles.invItem}>
-      <span style={{ color: color || '#888', fontSize: '13px' }}>{icon}</span>
-      <span style={{ color: '#aaa', fontSize: '16px', marginLeft: '4px' }}>{label}</span>
-      <span style={{ color: color || COLOR.accent, fontSize: '15px', marginLeft: 'auto', fontWeight: 'bold' }}>{count}</span>
+      <span style={{ color: color || '#888', fontSize: '16px' }}>{icon}</span>
+      <span style={{ color: '#aaa', fontSize: '13px', marginLeft: '4px' }}>{label}</span>
+      <span style={{ color: color || COLOR.accent, fontSize: '15px', marginLeft: 'auto' }}>{count}</span>
     </div>
   );
 }
@@ -133,7 +133,7 @@ const styles = {
     marginBottom: '10px',
   },
   label: {
-    fontSize: '12px',
+    fontSize: '13px',
     letterSpacing: '2px',
     color: '#777',
     marginBottom: '4px',
@@ -158,7 +158,7 @@ const styles = {
     flexWrap: 'wrap',
   },
   debuff: {
-    fontSize: '10px',
+    fontSize: '13px',
     padding: '2px 6px',
     border: '1px solid',
     borderRadius: '2px',
