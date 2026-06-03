@@ -74,7 +74,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
       if (mode === 'move') actRef.current('action:move', { direction: dir });
-      else if (mode === 'attack') actRef.current('action:attack', { direction: dir });
+      if (mode === 'attack') {
+        if (e.altKey) actRef.current('action:melee');
+        else actRef.current('action:attack', { direction: dir });
+      }
       else if (mode === 'bomb_wall') {
         if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
         else actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
@@ -111,9 +114,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     </button>
   );
 
-  const hasCellmate = gameData?.visiblePlayers?.some(p => p.x === me.x && p.y === me.y);
   const modeDisabled = disabled
-    || (mode === 'attack' && me.ammo < 1)
     || (mode === 'bomb_wall' && me.bombs < 1);
 
   return (
@@ -141,7 +142,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
               {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
             </div>
           </div>
-          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', letterSpacing: '1px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
+            {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
+          </div>
+          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
             {mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
@@ -158,8 +162,6 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
 
       {/* Contextual actions */}
       <div style={styles.contextRow}>
-        {/* Melee if ranged weapon */}
-        {hasCellmate && <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />}
 
         {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 
