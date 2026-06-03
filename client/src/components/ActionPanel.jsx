@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
-const DIR_LABEL = { top: '↑', right: '→', bottom: '↓', left: '←' };
+const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
 const DIR_GRID = { top: '1/2', right: '2/3', bottom: '3/2', left: '2/1' }; // row/col
 
 const COLOR = {
@@ -17,8 +17,45 @@ const COLOR = {
 export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
 
+  const disabled = !isMyTurn || !me || me.actionPoints < 1;
+  const actRef = useRef(act);
+  useEffect(() => { actRef.current = act; }, [act]);
+  console.log('ActionPanel render', { isMyTurn, disabled, mode });
+
+  useEffect(() => {
+    const KEY_DIR = {
+      w: 'top', d: 'right', s: 'bottom', a: 'left',
+      ц: 'top', в: 'right', ы: 'bottom', ф: 'left',
+    };
+    const handler = (e) => {
+      const key = e.key.toLowerCase();
+      
+      if (key === 'f' || key === 'а') {
+        if (!disabled && mode === 'bomb_wall') actRef.current('action:use_bomb', { mode: 'mine' });
+        return;
+      }
+
+      const MODE_KEYS = { '1': 'move', '2': 'attack', '3': 'bomb_wall', '4': 'check' };
+      if (MODE_KEYS[key]) {
+        setMode(MODE_KEYS[key]);
+        return;
+      }
+
+      const dir = KEY_DIR[key];
+      if (!dir || disabled) return;
+      if (mode === 'move') actRef.current('action:move', { direction: dir });
+      else if (mode === 'attack') actRef.current('action:attack', { direction: dir });
+      else if (mode === 'bomb_wall') actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+      else if (mode === 'check') {
+        if (e.altKey) actRef.current('action:check_cell', { direction: dir });
+        else actRef.current('action:check_wall', { direction: dir });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isMyTurn, disabled, mode]);
+
   if (!me) return null;
-  const disabled = !isMyTurn || me.actionPoints < 1;
 
   const dirBtn = (dir, action, payload = {}) => (
     <button
@@ -55,29 +92,33 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     <div style={styles.root}>
       {/* Mode selector */}
       <div style={styles.modeRow}>
-        {modeBtn('move', 'MOVE', COLOR.accent)}
-        {modeBtn('attack', 'ATTACK', '#ff4488')}
-        {modeBtn('bomb_wall', 'BOOM', COLOR.warn)}
-        {modeBtn('bomb_mine', 'MINE', COLOR.danger)}
-        {modeBtn('check_wall', 'WALL?', '#aaa')}
-        {modeBtn('check_cell', 'CELL?', '#aaa')}
+        {modeBtn('move', '1 MOVE', COLOR.accent)}
+        {modeBtn('attack', '2 ATTACK', '#ff4488')}
+        {modeBtn('bomb_wall', '3 BOOM', COLOR.warn)}
+        {modeBtn('check', '4 CHECK', '#aaa')}
       </div>
 
       {/* Direction pad */}
-      {['move', 'attack', 'bomb_wall', 'check_wall', 'check_cell'].includes(mode) && (
-        <div style={styles.dpad}>
-          {DIRS.map(dir => {
-            if (mode === 'move') return dirBtn(dir, 'action:move');
-            if (mode === 'attack') return dirBtn(dir, 'action:attack');
-            if (mode === 'bomb_wall') return dirBtn(dir, 'action:use_bomb', { mode: 'wall' });
-            if (mode === 'check_wall') return dirBtn(dir, 'action:check_wall');
-            if (mode === 'check_cell') return dirBtn(dir, 'action:check_cell');
-            return null;
-          })}
-          <div style={styles.dpadCenter}>
-            {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+      {['move', 'attack', 'bomb_wall', 'check'].includes(mode) && (
+        <>
+          <div style={styles.dpad}>
+            {DIRS.map(dir => {
+              if (mode === 'move') return dirBtn(dir, 'action:move');
+              if (mode === 'attack') return dirBtn(dir, 'action:attack');
+              if (mode === 'bomb_wall') return dirBtn(dir, 'action:use_bomb', { mode: 'wall' });
+              if (mode === 'check') return dirBtn(dir, 'action:check');
+              return null;
+            })}
+            <div style={styles.dpadCenter}>
+              {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+            </div>
           </div>
-        </div>
+          {mode === 'bomb_wall' && (
+            <div style={{ fontSize: '9px', color: COLOR.danger, letterSpacing: '1px', textAlign: 'center' }}>
+              [F] — PLANT MINE
+            </div>
+          )}
+        </>
       )}
 
       {/* Mine mode */}

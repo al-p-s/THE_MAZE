@@ -21,20 +21,20 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
     ctx.clearRect(0, 0, 52, 10);
     for (let i = 0; i < 3; i++) {
       const hp = Math.max(0, Math.min(1, me.health - i));
-      const cx = 5 + i * 16;
-      const cy = 5;
+      const cx = 7 + i * 22;
+      const cy = 7;
       ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
       ctx.fillStyle = '#333';
       ctx.fill();
       if (hp >= 1) {
         ctx.beginPath();
-        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
         ctx.fillStyle = '#cc3333';
         ctx.fill();
       } else if (hp === 0.5) {
         ctx.beginPath();
-        ctx.arc(cx, cy, 4, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.arc(cx, cy, 6, Math.PI * 0.5, Math.PI * 1.5);
         ctx.closePath();
         ctx.fillStyle = '#cc3333';
         ctx.fill();
@@ -66,8 +66,8 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       {/* Health */}
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <canvas ref={hpCanvasRef} width={52} height={10} />
-        <span style={{ color: '#cc3333', fontSize: '14px', fontWeight: 'bold' }}>
+        <canvas ref={hpCanvasRef} width={72} height={14} />
+        <span style={{ color: '#cc3333', fontSize: '18px', fontWeight: 'bold' }}>
           {me.health} / 3
         </span>
       </div>
@@ -135,9 +135,9 @@ const styles = {
     marginBottom: '10px',
   },
   label: {
-    fontSize: '9px',
+    fontSize: '12px',
     letterSpacing: '2px',
-    color: '#555',
+    color: '#777',
     marginBottom: '4px',
   },
   apRow: {
@@ -145,8 +145,8 @@ const styles = {
     gap: '6px',
   },
   apDot: {
-    width: '14px',
-    height: '14px',
+    width: '18px',
+    height: '18px',
     borderRadius: '50%',
     transition: 'background 0.2s',
   },

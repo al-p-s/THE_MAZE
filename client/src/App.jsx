@@ -183,23 +183,23 @@ function makeNotification(ev, myId) {
   }
   if (ev.event === 'attack' && ev.playerId === myId) {
     const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
-    return ev.hit
+    return ev.hit && ev.damage > 0
       ? { text: `HIT! -${ev.damage}`, color: '#ff4488', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
       : { text: 'MISS!', color: '#555' };
   }
   if (ev.event === 'attack' && ev.targetId === myId) {
     const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
-    return ev.hit
+    return ev.hit && ev.damage > 0
       ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
       : { text: 'DANGER!\nSOMEONE IS SHOOTING AT YOU!', color: '#ff4444' };
   }
   if (ev.event === 'melee' && ev.playerId === myId) {
-    return ev.hit
+    return ev.hit && ev.damage > 0
       ? { text: `HIT! -${ev.damage}`, color: '#ff4488' }
       : { text: 'MISS!', color: '#555' };
   }
   if (ev.event === 'melee' && ev.targetId === myId) {
-    return ev.hit
+    return ev.hit && ev.damage > 0
       ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: 'MELEE HIT!' }
       : { text: 'DANGER!\nMELEE MISS', color: '#ff4444' };
   }

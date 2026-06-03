@@ -49,7 +49,7 @@ io.on('connection', (socket) => {
   lobby.push(socket.id);
 
   // Для теста — стартуем когда 2 игрока
-  if (lobby.length === 2) {
+  if (lobby.length === 3) {
     gameState = createGameState(lobby, lobby.length);
     console.log('Game started!');
     broadcastViews();
