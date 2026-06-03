@@ -201,15 +201,15 @@ function actionTreasure(gameState, socketId, action) {
   }
 
   // закопать
-  if (action === 'bury') {
+  if (action === 'drop') {
     if (!player.hasTreasure) return { ok: false, reason: 'no_treasure' };
     player.actionPoints -= 1;
     player.hasTreasure = false;
     t.carriedBy = null;
     t.x = player.x;
     t.y = player.y;
-    t.isBuried = true;
-    return { ok: true, action: 'bury' };
+    t.isBuried = false;
+    return { ok: true, action: 'drop' };
   }
 
   return { ok: false, reason: 'bad_action' };

@@ -94,7 +94,6 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
           <InvItem icon="🔹" label="ammo" count={me.ammo} />
           <InvItem icon="💣" label="bombs" count={me.bombs} />
           <InvItem icon="+" label="medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
-          {me.hasTreasure && <InvItem icon="◆" label="treasure" count="" color="#ffd700" />}
         </div>
       </div>
     </div>

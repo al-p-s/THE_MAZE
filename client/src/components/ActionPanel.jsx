@@ -27,6 +27,9 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
   const onArsenal = cell?.type === 'arsenal';
   const onHospital = cell?.type === 'hospital';
+  const onTreasure = gameData?.treasure && me?.x === gameData.treasure?.x && me?.y === gameData.treasure?.y;
+  const hasTreasure = me?.hasTreasure;
+  const hasMedkit = me?.items?.includes('medkit');
 
   useEffect(() => {
     const KEY_DIR = {
@@ -54,6 +57,19 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         actRef.current('action:use_hospital', { choice: 'medkit' });
         return;
       }
+      if (key === 'f' || key === 'а') {
+        if (onTreasure && !hasTreasure && !gameData?.treasure?.isBuried)
+          actRef.current('action:treasure', { action: 'pickup' });
+        else if (onTreasure && !hasTreasure && gameData?.treasure?.isBuried)
+          actRef.current('action:treasure', { action: 'dig' });
+        else if (hasTreasure)
+          actRef.current('action:treasure', { action: 'drop' });
+        return;
+      }
+      if (key === 'x' || key === 'ч') {
+        if (hasMedkit) actRef.current('action:use_medkit');
+        return;
+      }
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
@@ -70,7 +86,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode, onArsenal, onHospital]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit]);
 
   if (!me) return null;
 
@@ -95,11 +111,6 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     </button>
   );
 
-  // Check if on POI
-  const onTreasure = gameData?.treasure && me.x === gameData.treasure?.x && me.y === gameData.treasure?.y;
-  const hasTreasure = me.hasTreasure;
-  const hasMedkit = me.items?.includes('medkit');
-
   const hasCellmate = gameData?.visiblePlayers?.some(p => p.x === me.x && p.y === me.y);
   const modeDisabled = disabled
     || (mode === 'attack' && me.ammo < 1)
@@ -111,7 +122,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       <div style={styles.modeRow}>
         {modeBtn('move', '[1] MOVE', COLOR.accent)}
         {modeBtn('bomb_wall', '[3] BOMB', COLOR.warn)}
-        {modeBtn('attack', '[2] SHOOT', COLOR.danger)}
+        {modeBtn('attack', '[2] ATTACK', COLOR.danger)}
         {modeBtn('check', '[4] CHECK', COLOR.hint)}
       </div>
 
@@ -157,16 +168,16 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
           <ActionBtn label="[E] GET MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
         </>}
 
-        {hasMedkit && <ActionBtn label="USE MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_medkit')} />}
+        {hasMedkit && <ActionBtn label="[X] USE MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_medkit')} />}
 
         {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
-          <ActionBtn label="PICK UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
+          <ActionBtn label="[F] PICK UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
 
         {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
-          <ActionBtn label="DIG UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
+          <ActionBtn label="[F] DIG UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
 
         {hasTreasure &&
-          <ActionBtn label="BURY A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
+          <ActionBtn label="[F] DROP TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
       </div>
     </div>
   );
