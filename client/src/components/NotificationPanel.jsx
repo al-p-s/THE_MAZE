@@ -41,7 +41,7 @@ const styles = {
   root: {
     padding: '10px 12px',
     borderBottom: '1px solid #1a1a1a',
-    minHeight: '52px',
+    flex: 1,
     display: 'flex',
     alignItems: 'center',
     fontFamily: "'Courier New', monospace",

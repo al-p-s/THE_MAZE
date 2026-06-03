@@ -62,7 +62,7 @@ io.on('connection', (socket) => {
     const result = actionMove(gameState, socket.id, direction);
     if (!result.ok) return;
     if (result.mine) {
-      io.emit('game:event', { event: 'mine_triggered', playerId: socket.id, mineOwner: result.mineOwner, died: result.died });
+      io.emit('game:event', { event: 'mine_triggered', playerId: socket.id, mineOwner: result.mineOwner, died: result.died, victims: result.victims });
       if (result.died) {
         const alive = gameState.players.filter(p => p.isAlive);
         if (alive.length === 1) {

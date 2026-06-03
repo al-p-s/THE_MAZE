@@ -11,7 +11,10 @@ const COLOR = {
   bg: '#111',
   border: '#222',
   danger: '#ff4444',
+  heal: '#ff4488',
   warn: '#ffaa00',
+  treasure: '#ffd700',
+  hint: '#aaa',
 };
 
 export default function ActionPanel({ me, isMyTurn, act, gameData }) {
@@ -32,11 +35,6 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     };
     const handler = (e) => {
       const key = e.key.toLowerCase();
-      
-      if (key === 'f' || key === 'а') {
-        if (!disabled && mode === 'bomb_wall') actRef.current('action:use_bomb', { mode: 'mine' });
-        return;
-      }
 
       const MODE_KEYS = { '1': 'move', '2': 'attack', '3': 'bomb_wall', '4': 'check' };
       if (MODE_KEYS[key]) {
@@ -61,7 +59,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
       if (!dir || disabled) return;
       if (mode === 'move') actRef.current('action:move', { direction: dir });
       else if (mode === 'attack') actRef.current('action:attack', { direction: dir });
-      else if (mode === 'bomb_wall') actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+      else if (mode === 'bomb_wall') {
+        if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
+        else actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+      }
       else if (mode === 'check') {
         if (e.altKey) actRef.current('action:check_cell', { direction: dir });
         else actRef.current('action:check_wall', { direction: dir });
@@ -76,8 +77,8 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const dirBtn = (dir, action, payload = {}) => (
     <button
       key={dir}
-      style={{ ...styles.dirBtn, gridArea: DIR_GRID[dir], opacity: disabled ? 0.3 : 1 }}
-      disabled={disabled}
+      style={{ ...styles.dirBtn, gridArea: DIR_GRID[dir], opacity: modeDisabled ? 0.3 : 1 }}
+      disabled={modeDisabled}
       onClick={() => act(action, { direction: dir, ...payload })}
     >
       {DIR_LABEL[dir]}
@@ -100,20 +101,23 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const hasMedkit = me.items?.includes('medkit');
 
   const hasCellmate = gameData?.visiblePlayers?.some(p => p.x === me.x && p.y === me.y);
+  const modeDisabled = disabled
+    || (mode === 'attack' && me.ammo < 1)
+    || (mode === 'bomb_wall' && me.bombs < 1);
 
   return (
     <div style={styles.root}>
       {/* Mode selector */}
       <div style={styles.modeRow}>
         {modeBtn('move', '[1] MOVE', COLOR.accent)}
-        {modeBtn('attack', '[2] ATTACK', '#ff4488')}
         {modeBtn('bomb_wall', '[3] BOMB', COLOR.warn)}
-        {modeBtn('check', '[4] CHECK', '#aaa')}
+        {modeBtn('attack', '[2] SHOOT', COLOR.danger)}
+        {modeBtn('check', '[4] CHECK', COLOR.hint)}
       </div>
 
       {/* Direction pad */}
       {['move', 'attack', 'bomb_wall', 'check'].includes(mode) && (
-        <>
+        <div style={{ position: 'relative', display: 'flex' }}>
           <div style={styles.dpad}>
             {DIRS.map(dir => {
               if (mode === 'move') return dirBtn(dir, 'action:move');
@@ -126,10 +130,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
               {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
             </div>
           </div>
-          <div style={{ fontSize: '13px', letterSpacing: '1px', textAlign: 'center', height: '14px', color: COLOR.danger }}>
-            {mode === 'bomb_wall' ? '[F] — PLANT MINE' : ''}
+          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', letterSpacing: '1px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
+            {mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
           </div>
-        </>
+        </div>
       )}
 
       {/* End turn */}
@@ -149,20 +153,20 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 
         {onHospital && <>
-          <ActionBtn label="[Q] HEAL" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
-          <ActionBtn label="[E] MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
+          <ActionBtn label="[Q] HEAL" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
+          <ActionBtn label="[E] GET MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
         </>}
 
-        {hasMedkit && <ActionBtn label="USE MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_medkit')} />}
+        {hasMedkit && <ActionBtn label="USE MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_medkit')} />}
 
         {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
-          <ActionBtn label="PICK UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
+          <ActionBtn label="PICK UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
 
         {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
-          <ActionBtn label="DIG UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
+          <ActionBtn label="DIG UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
 
         {hasTreasure &&
-          <ActionBtn label="BURY A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
+          <ActionBtn label="BURY A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
       </div>
     </div>
   );
@@ -189,9 +193,9 @@ const styles = {
     gap: '8px',
   },
   modeRow: {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
     gap: '4px',
-    flexWrap: 'wrap',
   },
   modeBtn: {
     background: 'none',
@@ -210,6 +214,7 @@ const styles = {
     gap: '3px',
     alignSelf: 'center',
     marginTop: '4px',
+    margin: '0 auto',
   },
   dpadCenter: {
     gridArea: '2/2',

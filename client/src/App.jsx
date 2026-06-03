@@ -208,8 +208,10 @@ function makeNotification(ev, myId) {
       ? { text: 'BOOM!', color: '#ffaa00' }
       : { text: 'THE MINE IS PLANTED!', color: '#ff2200' };
   }
-  if (ev.event === 'mine_triggered' && ev.playerId === myId) {
-    return { text: '-1.5 HP', color: '#ff2200', sub: 'EXPLOSION!' };
+  if (ev.event === 'mine_triggered') {
+    const inVictims = ev.victims?.find(v => v.id === myId);
+    if (inVictims || ev.playerId === myId) 
+      return { text: '-1.5 HP', color: '#ff2200', sub: 'EXPLOSION!', subColor: '#ffaa00' };
   }
   if (ev.event === 'arsenal_used' && ev.playerId === myId) {
     return { text: 'LOOTED', color: '#ffaa00', sub: ev.reward === 'ammo' ? '+2 AMMO' : '+2 BOMBS' };
@@ -261,7 +263,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     borderLeft: '1px solid #222',
-    overflow: 'hidden',
     flexShrink: 0,
   },
   center: {

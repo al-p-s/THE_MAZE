@@ -89,7 +89,7 @@ function actionMove(gameState, socketId, direction) {
     revealCell(player, player.x, player.y);
     revealWall(player, player.x - dx, player.y - dy, direction);
     revealWall(player, player.x, player.y, OPPOSITE[direction]);
-    return { ok: true, blocked: false, mine: true, mineOwner: owner, died };
+    return { ok: true, blocked: false, mine: true, mineOwner: owner, died, victims: victims.map(v => ({ id: v.id, died: !v.isAlive })) };
   }
 
   revealCell(player, player.x, player.y);
