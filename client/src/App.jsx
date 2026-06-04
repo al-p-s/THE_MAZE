@@ -21,6 +21,8 @@ const INITIAL_STATE = {
 export default function App() {
   const [state, setState] = useState(INITIAL_STATE);
   const [targetId, setTargetId] = useState(null);
+  const [confirmExit, setConfirmExit] = useState(false);
+  const pendingActionRef = useRef(null);
 
   const addEvent = useCallback((msg) => {
     setState(s => ({ ...s, events: [...s.events.slice(-49), msg] }));
@@ -68,13 +70,22 @@ export default function App() {
 
   const isMyTurn = state.currentTurn?.playerId === state.myId;
 
-  const act = useCallback((event, payload = {}) => {
-    if (!isMyTurn) return;
-    socket.emit(event, payload);
-  }, [isMyTurn]);
-
   const { gameData, myId, currentTurn, events } = state;
   const me = gameData?.you;
+
+  const act = useCallback((event, payload = {}) => {
+    if (!isMyTurn) return;
+    if (event === 'action:move' && me?.hasTreasure && gameData?.exit) {
+      const { direction } = payload;
+      if (direction === gameData.exit.direction && me.x === gameData.exit.x && me.y === gameData.exit.y) {
+        pendingActionRef.current = { event, payload };
+        setConfirmExit(true);
+        return;
+      }
+    }
+    socket.emit(event, payload);
+  }, [isMyTurn, me, gameData]);
+  
   const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y) ?? [];
   const effectiveTargetId = cellmates.find(p => p.id === targetId)?.id ?? cellmates[0]?.id ?? null;
 
@@ -103,6 +114,22 @@ export default function App() {
           <NotificationPanel notification={state.notification} />
         </>}
       </div>
+
+      {confirmExit && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <div style={styles.modalTitle}>LEAVE THE MAZE?</div>
+            <div style={styles.modalSub}>You have the treasure. This ends the game.</div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              <button style={styles.modalBtnConfirm} onClick={() => {
+                socket.emit(pendingActionRef.current.event, pendingActionRef.current.payload);
+                setConfirmExit(false);
+              }}>YES, LEAVE</button>
+              <button style={styles.modalBtnCancel} onClick={() => setConfirmExit(false)}>STAY</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -307,6 +334,23 @@ const styles = {
   overBox: { textAlign: 'center', fontFamily: "'Courier New', monospace" },
   overTitle: { fontSize: '56px', fontWeight: 'bold', letterSpacing: '8px' },
   overSub: { fontSize: '14px', color: '#666', marginTop: '12px', letterSpacing: '2px' },
+  modalOverlay: {
+    position: 'fixed', inset: 0, background: '#000000cc',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+  },
+  modal: {
+    background: '#111', border: '1px solid #c8ff00', padding: '24px 32px', textAlign: 'center',
+  },
+  modalTitle: { fontSize: '24px', fontWeight: 'bold', color: '#c8ff00', letterSpacing: '4px' },
+  modalSub: { fontSize: '12px', color: '#666', marginTop: '8px', letterSpacing: '1px' },
+  modalBtnConfirm: {
+    background: 'none', border: '1px solid #c8ff00', color: '#c8ff00',
+    padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
+  },
+  modalBtnCancel: {
+    background: 'none', border: '1px solid #333', color: '#555',
+    padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
+  },
 };
 
 const dotAnim = `
