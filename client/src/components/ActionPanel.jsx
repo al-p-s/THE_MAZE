@@ -17,7 +17,7 @@ const COLOR = {
   hint: '#aaa',
 };
 
-export default function ActionPanel({ me, isMyTurn, act, gameData }) {
+export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
 
   const disabled = !isMyTurn || !me || me.actionPoints < 1;
@@ -70,12 +70,24 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
         if (hasMedkit) actRef.current('action:use_medkit');
         return;
       }
+      if (key === 'tab') {
+        e.preventDefault();
+        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y) ?? [];
+        if (cellmates.length < 2) return;
+        const idx = cellmates.findIndex(p => p.id === targetId);
+        setTargetId(cellmates[(idx + 1) % cellmates.length].id);
+        return;
+      }
+      if (key === 'r' || key === 'к') {
+        if (targetId && !disabled) actRef.current('action:attack', { targetId });
+        return;
+      }
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
       if (mode === 'move') actRef.current('action:move', { direction: dir });
-      if (mode === 'attack') {
-        if (e.altKey) actRef.current('action:melee');
+      else if (mode === 'attack') {
+        if (e.altKey) actRef.current('action:melee', { targetId });
         else actRef.current('action:attack', { direction: dir });
       }
       else if (mode === 'bomb_wall') {
@@ -89,7 +101,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
 
   if (!me) return null;
 
@@ -146,7 +158,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
             {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
           </div>
           <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
-            {mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
+            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
       )}

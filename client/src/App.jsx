@@ -20,6 +20,7 @@ const INITIAL_STATE = {
 
 export default function App() {
   const [state, setState] = useState(INITIAL_STATE);
+  const [targetId, setTargetId] = useState(null);
 
   const addEvent = useCallback((msg) => {
     setState(s => ({ ...s, events: [...s.events.slice(-49), msg] }));
@@ -74,6 +75,8 @@ export default function App() {
 
   const { gameData, myId, currentTurn, events } = state;
   const me = gameData?.you;
+  const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y) ?? [];
+  const effectiveTargetId = cellmates.find(p => p.id === targetId)?.id ?? cellmates[0]?.id ?? null;
 
   return (
     <div style={styles.root}>
@@ -88,7 +91,7 @@ export default function App() {
       {/* Canvas */}
       <div style={styles.canvasArea}>
         {state.screen === 'waiting' && <WaitingScreen />}
-        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} />}
+        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} targetId={effectiveTargetId} />}
         {state.screen === 'over' && <OverScreen winner={state.winner} myId={myId} reason={state.winReason} />}
       </div>
 
@@ -96,7 +99,7 @@ export default function App() {
       <div style={styles.rightbar}>
         {state.screen === 'game' && <>
           <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
-          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} />
+          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} />
           <NotificationPanel notification={state.notification} />
         </>}
       </div>

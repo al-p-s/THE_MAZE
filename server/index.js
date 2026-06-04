@@ -165,9 +165,9 @@ io.on('connection', (socket) => {
     advanceTurn();
   });
 
-  socket.on('action:attack', ({ direction } = {}) => {
+  socket.on('action:attack', ({ direction, targetId } = {}) => {
     if (!isCurrentPlayer(socket.id)) return;
-    const result = actionAttack(gameState, socket.id, direction);
+    const result = actionAttack(gameState, socket.id, direction, targetId);
     if (!result.ok) return;
 
     io.emit('game:event', {
@@ -197,9 +197,9 @@ io.on('connection', (socket) => {
     else broadcastViews();
   });
 
-  socket.on('action:melee', () => {
+  socket.on('action:melee', ({ targetId } = {}) => {
     if (!isCurrentPlayer(socket.id)) return;
-    const result = actionMelee(gameState, socket.id);
+    const result = actionMelee(gameState, socket.id, targetId);
     if (!result.ok) return;
     io.emit('game:event', { event: 'melee', playerId: socket.id, hit: result.hit, roll: result.roll,
       damage: result.damage ?? 0, targetId: result.targetId ?? null, died: result.died ?? false });
