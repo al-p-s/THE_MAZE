@@ -24,6 +24,10 @@ const SPRITES = {
     bottom: '/sprites/pinkerton/02_front.png',
     left: '/sprites/pinkerton/02_left.png',
     right: '/sprites/pinkerton/02_right.png',
+    top_left: '/sprites/pinkerton/02_left_back.png',
+    top_right: '/sprites/pinkerton/02_back_right.png',
+    bottom_left: '/sprites/pinkerton/02_front_left.png',
+    bottom_right: '/sprites/pinkerton/02_front_right.png',
   }
 };
 
@@ -56,11 +60,17 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       const cy = (you.y + 0.5) * CELL + rect.top;
       const dx = e.clientX - cx;
       const dy = e.clientY - cy;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        setMouseDir(dx > 0 ? 'right' : 'left');
-      } else {
-        setMouseDir(dy > 0 ? 'bottom' : 'top');
-      }
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      let dir;
+      if (angle > -22.5 && angle <= 22.5) dir = 'right';
+      else if (angle > 22.5 && angle <= 67.5) dir = 'bottom_right';
+      else if (angle > 67.5 && angle <= 112.5) dir = 'bottom';
+      else if (angle > 112.5 && angle <= 157.5) dir = 'bottom_left';
+      else if (angle > 157.5 || angle <= -157.5) dir = 'left';
+      else if (angle > -157.5 && angle <= -112.5) dir = 'top_left';
+      else if (angle > -112.5 && angle <= -67.5) dir = 'top';
+      else dir = 'top_right';
+      setMouseDir(dir);
     };
     window.addEventListener('mousemove', handler);
     return () => window.removeEventListener('mousemove', handler);
