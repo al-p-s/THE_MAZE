@@ -20,7 +20,7 @@ const INITIAL_STATE = {
 
 const COLOR = {
   bg: '#0e0c09',
-  border: '#2a2318',
+  border: '#4a3a22',
   text: '#a89070',
   textDim: '#5a4a38',
   accent: '#c8a84b',
@@ -322,7 +322,7 @@ const styles = {
   },
   leftbar: {
     width: '320px',
-    borderRight: '1px solid ${COLOR.border}',
+    borderRight: `1px solid ${COLOR.border}`,
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
@@ -339,7 +339,7 @@ const styles = {
     width: '320px',
     display: 'flex',
     flexDirection: 'column',
-    borderLeft: '1px solid ${COLOR.border}',
+    borderLeft: `1px solid ${COLOR.border}`,
     flexShrink: 0,
   },
   center: {
@@ -386,16 +386,16 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
   },
   modal: {
-    background: '#111', border: '1px solid ' + COLOR.accent, padding: '24px 32px', textAlign: 'center',
+    background: '#111', border: `1px solid ${COLOR.accent}`, padding: '24px 32px', textAlign: 'center',
   },
   modalTitle: { fontSize: '24px', fontWeight: 'bold', color: COLOR.accent, letterSpacing: '4px' },
   modalSub: { fontSize: '12px', color: COLOR.textDim, marginTop: '8px', letterSpacing: '1px' },
   modalBtnConfirm: {
-    background: 'none', border: '1px solid ${COLOR.accent}', color: COLOR.accent,
+    background: 'none', border: `1px solid ${COLOR.accent}`, color: COLOR.accent,
     padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
   },
   modalBtnCancel: {
-    background: 'none', border: '1px solid ${COLOR.border}', color: COLOR.textDim,
+    background: 'none', border: `1px solid ${COLOR.border}`, color: COLOR.textDim,
     padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
   },
 };

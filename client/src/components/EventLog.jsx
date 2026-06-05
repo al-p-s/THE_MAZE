@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react';
 
+const COLOR = {
+  text: '#a89070',
+  textDim: '#5a4a38',
+  border: '#4a3a22',
+  empty: '#333',
+  index: '#333',
+};
+
 export default function EventLog({ events }) {
   const bottomRef = useRef(null);
 
@@ -35,11 +43,11 @@ const styles = {
     fontFamily: "'Courier New', monospace",
   },
   header: {
-    fontSize: '13px',
+    fontSize: '9px',
     letterSpacing: '3px',
-    color: '#444',
-    padding: '8px 12px 4px',
-    borderBottom: '1px solid #1a1a1a',
+    color: COLOR.textDim,
+    padding: '10px 12px 6px',
+    fontFamily: "'Cinzel', serif",
   },
   list: {
     flex: 1,
@@ -50,7 +58,7 @@ const styles = {
     gap: '3px',
   },
   empty: {
-    color: '#333',
+    color: COLOR.empty,
     fontSize: '13px',
     textAlign: 'center',
     marginTop: '20px',
@@ -63,13 +71,13 @@ const styles = {
     lineHeight: '1.4',
   },
   index: {
-    color: '#333',
+    color: COLOR.index,
     minWidth: '16px',
     textAlign: 'right',
     flexShrink: 0,
   },
   msg: {
-    color: '#888',
+    color: COLOR.text,
     wordBreak: 'break-word',
   },
 };
