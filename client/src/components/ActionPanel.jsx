@@ -5,16 +5,17 @@ const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
 const DIR_GRID = { top: '1/2', right: '2/3', bottom: '3/2', left: '2/1' }; // row/col
 
 const COLOR = {
-  accent: '#c8ff00',
-  dim: '#333',
-  dimText: '#555',
-  bg: '#111',
-  border: '#222',
-  danger: '#ff4444',
-  heal: '#ff4488',
-  warn: '#ffaa00',
-  treasure: '#ffd700',
-  hint: '#aaa',
+  accent: '#c8a84b',
+  dim: '#3a3228',
+  dimText: '#5a4a38',
+  bg: '#0e0c09',
+  border: '#3a2e1e',
+  danger: '#8b2020',
+  heal: '#4a7a3a',
+  warn: '#8a6020',
+  treasure: '#c8a84b',
+  hint: '#6a5a48',
+  dirBg: '#13110e',
 };
 
 export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId }) {
@@ -227,6 +228,7 @@ const styles = {
     gap: '4px',
   },
   modeBtn: {
+    fontFamily: "'Cinzel', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 6px',
@@ -250,11 +252,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#333',
+    color: COLOR.dim,
     fontSize: '18px',
   },
   dirBtn: {
-    background: '#1a1a1a',
+    fontFamily: "'Cinzel', serif",
+    background: COLOR.dirBg,
     border: `1px solid ${COLOR.dim}`,
     color: COLOR.accent,
     fontSize: '16px',
@@ -275,6 +278,7 @@ const styles = {
     gap: '4px',
   },
   ctxBtn: {
+    fontFamily: "'Cinzel', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 8px',
@@ -284,9 +288,10 @@ const styles = {
     borderRadius: '2px',
   },
   endBtn: {
+    fontFamily: "'Cinzel', serif",
     background: 'none',
-    border: `1px solid #333`,
-    color: '#555',
+    border: `1px solid ${COLOR.border}`,
+    color: COLOR.dimText,
     padding: '6px',
     fontSize: '13px',
     letterSpacing: '2px',

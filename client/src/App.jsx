@@ -18,6 +18,22 @@ const INITIAL_STATE = {
   notification: null,
 };
 
+const COLOR = {
+  bg: '#0e0c09',
+  border: '#2a2318',
+  text: '#a89070',
+  textDim: '#5a4a38',
+  accent: '#c8a84b',
+  danger: '#8b2020',
+  warn: '#8a6020',
+  heal: '#4a7a3a',
+  miss: '#aaaaaa',
+  explosion: '#8a4010',
+  debuffW: '#c8860a',
+  debuffS: '#2e6a8a',
+  debuffP: '#8b1a1a',
+};
+
 export default function App() {
   const [state, setState] = useState(INITIAL_STATE);
   const [targetId, setTargetId] = useState(null);
@@ -140,7 +156,7 @@ function WaitingScreen() {
     <div style={styles.center}>
       <div style={styles.waitBox}>
         <div style={styles.waitTitle}>THE MAZE</div>
-        <div style={styles.waitSub}>Ожидание игроков...</div>
+        <div style={styles.waitSub}>Waiting for players...</div>
         <div style={styles.waitDots}>
           <span style={{...styles.dot, animationDelay:'0s'}} />
           <span style={{...styles.dot, animationDelay:'0.2s'}} />
@@ -157,7 +173,7 @@ function OverScreen({ winner, myId, reason }) {
   return (
     <div style={styles.center}>
       <div style={styles.overBox}>
-        <div style={{...styles.overTitle, color: won ? '#c8ff00' : '#ff4444'}}>
+        <div style={{...styles.overTitle, color: won ? COLOR.accent : COLOR.danger}}>
           {won ? 'WINNER' : 'LOOSER'}
         </div>
         <div style={styles.overSub}>{reasonLabel(reason)}</div>
@@ -225,65 +241,65 @@ function formatEvent(ev, myId) {
 function makeNotification(ev, myId) {
   if (ev.event === 'cell_checked' && ev.playerId === myId) {
     return ev.content
-      ? { text: 'DANGER!', color: '#ff2200', sub: ev.content }
-      : { text: 'SAFE!', color: '#c8ff00' };
+      ? { text: 'DANGER!', color: COLOR.danger, sub: ev.content }
+      : { text: 'SAFE!', color: COLOR.accent };
   }
   if (ev.event === 'wall_checked' && ev.playerId === myId) {
     return ev.isEdge
-      ? { text: 'NOTHING...', color: '#ffffff' }
+      ? { text: 'NOTHING...', color: COLOR.miss }
       : ev.hasWall
-        ? { text: 'WALL!', color: '#ffaa00' }
-        : { text: 'FREE!', color: '#00ffcc' };
+        ? { text: 'WALL!', color: COLOR.warn }
+        : { text: 'FREE!', color: COLOR.accent };
   }
   if (ev.event === 'exit_found' && ev.playerId === myId) {
-    return { text: 'EXIT DETECTED!', color: '#00ffcc' };
+    return { text: 'EXIT DETECTED!', color: COLOR.accent };
   }
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge
-      ? { text: 'NOTHING...', color: '#ffffff' }
-      : { text: 'WALL!', color: '#ffaa00' };
+      ? { text: 'NOTHING...', color: COLOR.miss }
+      : { text: 'WALL!', color: COLOR.warn };
   }
   if (ev.event === 'attack' && ev.playerId === myId) {
-    const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
+    const debuffColor = ev.debuff === 'W' ? COLOR.debuffW : ev.debuff === 'S' ? COLOR.debuffS : ev.debuff === 'P' ? COLOR.debuffP : null;
     return ev.hit && ev.damage > 0
-      ? { text: `HIT! -${ev.damage}`, color: '#ff4488', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
-      : { text: 'MISS!', color: '#ffffff' };
+      ? { text: `HIT! -${ev.damage}`, color: COLOR.danger, sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
+      : { text: 'MISS!', color: COLOR.miss };
   }
   if (ev.event === 'attack' && ev.targetId === myId) {
     return ev.hit
-      ? { text: ev.debuff ? `-${ev.damage} HP, [${ev.debuff}] ${ev.debuffTurns} turns` : `-${ev.damage} HP`, color: '#ff4444', sub: 'SHOT AT YOU!' }
-      : { text: 'MISS!', color: '#ffffff', sub: 'SHOT AT YOU!' };
+      ? { text: ev.debuff ? `-${ev.damage} HP, [${ev.debuff}] ${ev.debuffTurns} turns` : `-${ev.damage} HP`, color: COLOR.danger, sub: 'SHOT AT YOU!' }
+      : { text: 'MISS!', color: COLOR.miss, sub: 'SHOT AT YOU!' };
   }
   if (ev.event === 'melee' && ev.playerId === myId) {
     return ev.hit && ev.damage > 0
-      ? { text: `HIT! -${ev.damage}`, color: '#ff4488' }
-      : { text: 'MISS!', color: '#ffffff' };
+      ? { text: `HIT! -${ev.damage}`, color: COLOR.danger }
+      : { text: 'MISS!', color: COLOR.miss };
   }
   if (ev.event === 'melee' && ev.targetId === myId) {
     return ev.hit
-      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: 'MELEE HIT AT YOU!' }
-      : { text: 'MISS!', color: '#ffffff', sub: 'MELEE HIT AT YOU!' };
+      ? { text: `-${ev.damage} HP`, color: COLOR.danger, sub: 'MELEE HIT AT YOU!' }
+      : { text: 'MISS!', color: COLOR.miss, sub: 'MELEE HIT AT YOU!' };
   }
   if (ev.event === 'bomb_used' && ev.playerId === myId) {
     return ev.mode === 'wall'
-      ? { text: 'BOOM!', color: '#ffaa00' }
-      : { text: 'THE MINE IS PLANTED!', color: '#ffaa00' };
+      ? { text: 'BOOM!', color: COLOR.explosion, sub: 'Wall blown', subColor: COLOR.warn }
+      : { text: 'THE MINE IS PLANTED!', color: COLOR.explosion };
   }
   if (ev.event === 'mine_triggered') {
     const inVictims = ev.victims?.find(v => v.id === myId);
     if (inVictims || ev.playerId === myId) 
-      return { text: '-1.5 HP', color: '#ff2200', sub: 'EXPLOSION!', subColor: '#ffaa00' };
+      return { text: '-1.5 HP', color: COLOR.danger, sub: 'EXPLOSION!', subColor: COLOR.explosion };
   }
   if (ev.event === 'arsenal_used' && ev.playerId === myId) {
-    return { text: 'LOOTED', color: '#ffaa00', sub: ev.reward === 'ammo' ? '+2 AMMO' : '+2 BOMBS' };
+    return { text: 'LOOTED', color: COLOR.accent, sub: ev.reward === 'ammo' ? '+2 AMMO' : '+2 BOMBS' };
   }
   if (ev.event === 'hospital_used' && ev.playerId === myId) {
     return ev.choice === 'heal'
-      ? { text: 'HEALTH FULL RESTORED', color: '#ff4488' }
-      : { text: '+1 MEDKIT', color: '#ff4488' };
+      ? { text: 'HEALTH FULL RESTORED', color: COLOR.heal }
+      : { text: '+1 MEDKIT', color: COLOR.heal };
   }
   if (ev.event === 'medkit_used' && ev.playerId === myId) {
-    return { text: '+1 HP', color: '#ff4488', sub: 'MEDKIT USED' };
+    return { text: '+1 HP', color: COLOR.heal, sub: 'MEDKIT USED' };
   }
   return null;
 }
@@ -299,14 +315,14 @@ const styles = {
     display: 'flex',
     height: '100vh',
     width: '100vw',
-    background: '#0a0a0a',
+    background: COLOR.bg,
     fontFamily: "'Courier New', monospace",
-    color: '#e0e0e0',
+    color: COLOR.text,
     overflow: 'hidden',
   },
   leftbar: {
     width: '320px',
-    borderRight: '1px solid #222',
+    borderRight: '1px solid ${COLOR.border}',
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
@@ -323,7 +339,7 @@ const styles = {
     width: '320px',
     display: 'flex',
     flexDirection: 'column',
-    borderLeft: '1px solid #222',
+    borderLeft: '1px solid ${COLOR.border}',
     flexShrink: 0,
   },
   center: {
@@ -340,12 +356,12 @@ const styles = {
     fontSize: '48px',
     fontWeight: 'bold',
     letterSpacing: '12px',
-    color: '#c8ff00',
+    color: COLOR.accent,
     marginBottom: '16px',
   },
   waitSub: {
     fontSize: '14px',
-    color: '#666',
+    color: COLOR.textDim,
     letterSpacing: '2px',
     marginBottom: '24px',
   },
@@ -358,28 +374,28 @@ const styles = {
     width: '8px',
     height: '8px',
     borderRadius: '50%',
-    background: '#c8ff00',
+    background: COLOR.accent,
     display: 'inline-block',
     animation: 'blink 1s infinite',
   },
   overBox: { textAlign: 'center', fontFamily: "'Courier New', monospace" },
   overTitle: { fontSize: '56px', fontWeight: 'bold', letterSpacing: '8px' },
-  overSub: { fontSize: '14px', color: '#666', marginTop: '12px', letterSpacing: '2px' },
+  overSub: { fontSize: '14px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
   modalOverlay: {
     position: 'fixed', inset: 0, background: '#000000cc',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
   },
   modal: {
-    background: '#111', border: '1px solid #c8ff00', padding: '24px 32px', textAlign: 'center',
+    background: '#111', border: '1px solid ' + COLOR.accent, padding: '24px 32px', textAlign: 'center',
   },
-  modalTitle: { fontSize: '24px', fontWeight: 'bold', color: '#c8ff00', letterSpacing: '4px' },
-  modalSub: { fontSize: '12px', color: '#666', marginTop: '8px', letterSpacing: '1px' },
+  modalTitle: { fontSize: '24px', fontWeight: 'bold', color: COLOR.accent, letterSpacing: '4px' },
+  modalSub: { fontSize: '12px', color: COLOR.textDim, marginTop: '8px', letterSpacing: '1px' },
   modalBtnConfirm: {
-    background: 'none', border: '1px solid #c8ff00', color: '#c8ff00',
+    background: 'none', border: '1px solid ${COLOR.accent}', color: COLOR.accent,
     padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
   },
   modalBtnCancel: {
-    background: 'none', border: '1px solid #333', color: '#555',
+    background: 'none', border: '1px solid ${COLOR.border}', color: COLOR.textDim,
     padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
   },
 };
