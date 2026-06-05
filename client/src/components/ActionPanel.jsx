@@ -16,7 +16,7 @@ const COLOR = {
   dirBg: '#13110e',
 };
 
-export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId }) {
+export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId, setMouseDir }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
 
   const disabled = !isMyTurn || !me || me.actionPoints < 1;
@@ -100,23 +100,23 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
-      if (mode === 'move') actRef.current('action:move', { direction: dir });
+      if (mode === 'move') { actRef.current('action:move', { direction: dir }); setMouseDir(dir); }
       else if (mode === 'attack') {
-        if (e.altKey) actRef.current('action:melee', { targetId });
-        else actRef.current('action:attack', { direction: dir });
+        if (e.altKey) { actRef.current('action:melee', { targetId }); setMouseDir(dir); }
+        else { actRef.current('action:attack', { direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'bomb_wall') {
         if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
-        else actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+        else { actRef.current('action:use_bomb', { mode: 'wall', direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'check') {
-        if (e.altKey) actRef.current('action:check_cell', { direction: dir });
-        else actRef.current('action:check_wall', { direction: dir });
+        if (e.altKey) { actRef.current('action:check_cell', { direction: dir }); setMouseDir(dir); }
+        else { actRef.current('action:check_wall', { direction: dir }); setMouseDir(dir); }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, corpsesHere, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, corpsesHere, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y, setMouseDir ]);
 
   if (!me) return null;
 

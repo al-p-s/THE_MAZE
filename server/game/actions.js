@@ -112,6 +112,7 @@ function actionCheckWall(gameState, socketId, direction) {
   const alreadyKnown = !!player.visibleCells[wallKey]?.[direction];
   if (alreadyKnown) return { ok: true, alreadyKnown: true, isEdge: false, isExit: false, hasWall: null };
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
 
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
@@ -148,6 +149,7 @@ function actionUseHospital(gameState, socketId, choice) {
   if (!cell || cell.type !== 'hospital') return { ok: false, reason: 'not_hospital' };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   cell.type = 'empty';
 
   if (choice === 'heal') {
@@ -171,6 +173,7 @@ function actionUseArsenal(gameState, socketId) {
   if (!cell || cell.type !== 'arsenal') return { ok: false, reason: 'not_arsenal' };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   cell.type = 'empty';
 
   const roll = Math.random() < 0.5 ? 'ammo' : 'bombs';
@@ -193,6 +196,7 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'dig') {
     if (!onTreasureCell || !t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_dig' };
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     t.isBuried = false;
     return { ok: true, action: 'dig' };
   }
@@ -201,6 +205,7 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'pickup') {
     if (!onTreasureCell || t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_pickup' };
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     t.carriedBy = socketId;
     player.hasTreasure = true;
     return { ok: true, action: 'pickup' };
@@ -210,6 +215,7 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'drop') {
     if (!player.hasTreasure) return { ok: false, reason: 'no_treasure' };
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     player.hasTreasure = false;
     t.carriedBy = null;
     t.x = player.x;
@@ -228,6 +234,7 @@ function actionUseBomb(gameState, socketId, mode, direction) {
 
   if (mode === 'mine') {
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     player.bombs -= 1;
     const cell = getCell(gameState.maze, player.x, player.y);
     cell.content = 'mine';
@@ -246,6 +253,7 @@ function actionUseBomb(gameState, socketId, mode, direction) {
     if (nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height)
       return { ok: false, reason: 'outer_wall' };
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     player.bombs -= 1;
     cell.walls[direction] = false;
     getCell(gameState.maze, nx, ny).walls[OPPOSITE[direction]] = false;
@@ -266,6 +274,7 @@ function actionCheckCell(gameState, socketId, direction) {
     return { ok: false };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   const cell = getCell(gameState.maze, nx, ny);
   if (!cell) return { ok: true, content: null };
 
@@ -286,6 +295,7 @@ function actionUseMedkit(gameState, socketId) {
   if (!player.items.includes('medkit')) return { ok: false, reason: 'no_medkit' };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   player.items.splice(player.items.indexOf('medkit'), 1);
   player.health = Math.min(player.health + 1, 3);
   return { ok: true };
@@ -306,6 +316,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
     if (!target) return { ok: false, reason: 'invalid_target' };
     player.ammo -= 1;
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     const roll = rollDice();
     const { damage, debuff, debuffTurns } = weaponResults[player.className](roll);
     target.health -= damage;
@@ -325,8 +336,9 @@ function actionAttack(gameState, socketId, direction, targetId) {
   if (!DIRS[direction]) return { ok: false };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   player.ammo -= 1;
-
+  
   // Идём по прямой до стены или игрока
   const { dx, dy } = DIRS[direction];
   let x = player.x;
@@ -379,6 +391,7 @@ function actionMelee(gameState, socketId, targetId) {
   if (!target) return { ok: false, reason: 'no_target' };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   const roll = rollDice();
   if (roll <= 3) return { ok: true, hit: false, roll, targetId: target.id };
 
@@ -407,6 +420,7 @@ function actionLoot(gameState, socketId, targetId) {
   if (!corpse || corpse.looted) return { ok: false, reason: 'no_corpse' };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   corpse.looted = true;
 
   const loot = {};

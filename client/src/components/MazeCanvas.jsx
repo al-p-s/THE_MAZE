@@ -27,10 +27,9 @@ const SPRITES = {
   }
 };
 
-export default function MazeCanvas({ gameData, myId, targetId }) {
+export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMouseDir }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const [mouseDir, setMouseDir] = useState('bottom');
   const spritesRef = useRef({});
   const [forceUpdate, setForceUpdate] = useState(0);
 
@@ -65,7 +64,7 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
     };
     window.addEventListener('mousemove', handler);
     return () => window.removeEventListener('mousemove', handler);
-  }, [gameData]);
+  }, [gameData, setMouseDir]);
 
   useEffect(() => {
     if (!gameData || !containerRef.current) return;

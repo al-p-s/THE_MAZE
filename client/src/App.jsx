@@ -38,6 +38,7 @@ export default function App() {
   const [state, setState] = useState(INITIAL_STATE);
   const [targetId, setTargetId] = useState(null);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [mouseDir, setMouseDir] = useState('bottom');
   const pendingActionRef = useRef(null);
 
   const addEvent = useCallback((msg) => {
@@ -119,7 +120,7 @@ export default function App() {
       {/* Canvas */}
       <div style={styles.canvasArea}>
         {state.screen === 'waiting' && <WaitingScreen />}
-        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} targetId={effectiveTargetId} />}
+        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} targetId={effectiveTargetId} mouseDir={mouseDir} setMouseDir={setMouseDir} />}
         {state.screen === 'over' && <OverScreen winner={state.winner} myId={myId} reason={state.winReason} />}
       </div>
 
@@ -128,7 +129,7 @@ export default function App() {
         {state.screen === 'game' && <>
           <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
           <div style={styles.divider} />
-          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} />
+          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} setMouseDir={setMouseDir} />
           <div style={styles.divider} />
           <NotificationPanel notification={state.notification} />
         </>}
