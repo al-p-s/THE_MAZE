@@ -30,6 +30,7 @@ const SPRITES = {
 export default function MazeCanvas({ gameData, myId, targetId }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const [mouseDir, setMouseDir] = useState('bottom');
   const spritesRef = useRef({});
   const [forceUpdate, setForceUpdate] = useState(0);
 
@@ -46,6 +47,27 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
   }, []);
 
   useEffect(() => {
+    const handler = (e) => {
+      const canvas = canvasRef.current;
+      if (!canvas || !gameData?.you) return;
+      const rect = canvas.getBoundingClientRect();
+      const { you, maze } = gameData;
+      const CELL = canvas.width / maze.width;
+      const cx = (you.x + 0.5) * CELL + rect.left;
+      const cy = (you.y + 0.5) * CELL + rect.top;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setMouseDir(dx > 0 ? 'right' : 'left');
+      } else {
+        setMouseDir(dy > 0 ? 'bottom' : 'top');
+      }
+    };
+    window.addEventListener('mousemove', handler);
+    return () => window.removeEventListener('mousemove', handler);
+  }, [gameData]);
+
+  useEffect(() => {
     if (!gameData || !containerRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -56,8 +78,8 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current);
-  }, [gameData, targetId, myId, forceUpdate]);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir);
+  }, [gameData, targetId, myId, forceUpdate, mouseDir]);
 
   if (!gameData) return null;
 
@@ -68,7 +90,7 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -85,7 +107,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites) {
       drawCellWalls(ctx, cell, CELL);
 
   // Draw player
-  if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId);
+  if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId, mouseDir);
 }
 
 function drawExit(ctx, px, py, CELL, direction) {
@@ -237,7 +259,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
   }
 }
 
-function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = null) {
+function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = null, mouseDir = 'bottom') {
   // группируем visiblePlayers по клеткам
   const byCell = {};
   for (const p of visiblePlayers) {
@@ -251,7 +273,8 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   const myCellmates = byCell[myKey] || [];
   const myTotal = myCellmates.length + 1;
   const myPositions = getPositions(you.x, you.y, CELL, myTotal);
-  drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true, sprites, false, true);
+  const youWithDir = { ...you, direction: mouseDir };
+  drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, myPositions[0], true, sprites, false, true);
   myCellmates.forEach((p, i) => {
     drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, sprites, p.id === targetId, false);
   });
