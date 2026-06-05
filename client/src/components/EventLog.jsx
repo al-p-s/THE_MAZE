@@ -17,7 +17,13 @@ export default function EventLog({ events }) {
 
   return (
     <div style={styles.root}>
-      <div style={styles.header}>LOG</div>
+      <div style={styles.logDivider}>
+        <div style={styles.logLine} />
+        <span style={styles.logDiamond}> ◇ </span>
+        <span style={styles.logTitle}>LOG</span>
+        <span style={styles.logDiamond}> ◇ </span>
+        <div style={styles.logLine} />
+      </div>
       <div style={styles.list} className="event-log-list">
         {events.length === 0
           ? <div style={styles.empty}>— no events —</div>
@@ -42,13 +48,6 @@ const styles = {
     overflow: 'hidden',
     fontFamily: "'Courier New', monospace",
   },
-  header: {
-    fontSize: '9px',
-    letterSpacing: '3px',
-    color: COLOR.textDim,
-    padding: '10px 12px 6px',
-    fontFamily: "'Cinzel', serif",
-  },
   list: {
     flex: 1,
     overflowY: 'auto',
@@ -58,8 +57,9 @@ const styles = {
     gap: '3px',
   },
   empty: {
-    color: COLOR.empty,
+    fontFamily: "'Spectral', serif",
     fontSize: '13px',
+    color: COLOR.empty,
     textAlign: 'center',
     marginTop: '20px',
     letterSpacing: '1px',
@@ -77,7 +77,35 @@ const styles = {
     flexShrink: 0,
   },
   msg: {
+    fontFamily: "'Spectral', serif",
     color: COLOR.text,
     wordBreak: 'break-word',
+  },
+  logDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 12px 8px',
+  },
+  logLine: {
+    flex: 1,
+    height: '1px',
+    background: `linear-gradient(
+      to right,
+      transparent,
+      ${COLOR.border},
+      transparent
+    )`,
+  },
+  logTitle: {
+    margin: '0 8px',
+    fontSize: '10px',
+    letterSpacing: '4px',
+    color: COLOR.accent,
+    fontFamily: "'Cinzel', serif",
+  },
+  logDiamond: {
+    margin: '0 4px',
+    fontSize: '9px',
+    color: COLOR.accent,
   },
 };

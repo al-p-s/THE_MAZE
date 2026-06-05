@@ -316,7 +316,7 @@ const styles = {
     height: '100vh',
     width: '100vw',
     background: COLOR.bg,
-    fontFamily: "'Courier New', monospace",
+    fontFamily: "'Spectral', serif",
     color: COLOR.text,
     overflow: 'hidden',
   },
@@ -350,7 +350,7 @@ const styles = {
   },
   waitBox: {
     textAlign: 'center',
-    fontFamily: "'Courier New', monospace",
+    fontFamily: "'Spectral', serif",
   },
   waitTitle: {
     fontSize: '48px',
@@ -378,11 +378,11 @@ const styles = {
     display: 'inline-block',
     animation: 'blink 1s infinite',
   },
-  overBox: { textAlign: 'center', fontFamily: "'Courier New', monospace" },
+  overBox: { textAlign: 'center', fontFamily: "'Spectral', serif" },
   overTitle: { fontSize: '56px', fontWeight: 'bold', letterSpacing: '8px' },
   overSub: { fontSize: '14px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
   modalOverlay: {
-    position: 'fixed', inset: 0, background: '#000000cc',
+    position: 'fixed', inset: 0, background: COLOR.bg + 'cc', backdropFilter: 'blur(4px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
   },
   modal: {

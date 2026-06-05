@@ -124,7 +124,15 @@ export default function CharacterPanel({ me, events }) {
               <div style={styles.charTitle}>«{cls.title}»</div>
             </div>
 
-            <div style={styles.sectionDivider} />
+            <div style={styles.ornamentDivider}>
+              <div style={styles.ornamentLine} />
+
+              <span style={styles.ornamentDiamond}>
+                ◇
+              </span>
+
+              <div style={styles.ornamentLine} />
+            </div>
 
             {/* Weapon */}
             <div style={styles.infoBlock}>
@@ -153,9 +161,6 @@ export default function CharacterPanel({ me, events }) {
           <div style={styles.noChar}>—</div>
         )}
       </div>
-
-      {/* Divider */}
-      <div style={styles.divider} />
 
       {/* Event log */}
       <div style={styles.logWrap}>
@@ -210,6 +215,7 @@ const styles = {
     textTransform: 'uppercase',
   },
   charTitle: {
+    fontFamily: "'Spectral', serif",
     fontSize: '14px',
     letterSpacing: '3px',
     color: COLOR.textDim,
@@ -296,5 +302,27 @@ const styles = {
     color: COLOR.text,
     letterSpacing: '1px',
     fontFamily: "'Cinzel', serif",
+  },
+  ornamentDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '6px 0 10px',
+  },
+
+  ornamentLine: {
+    flex: 1,
+    height: '1px',
+    background: `linear-gradient(
+      to right,
+      transparent,
+      ${COLOR.border},
+      transparent
+    )`,
+  },
+
+  ornamentDiamond: {
+    margin: '0 8px',
+    color: COLOR.accent,
+    fontSize: '9px',
   },
 };

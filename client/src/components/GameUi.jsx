@@ -87,10 +87,10 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
           </div>
         </div>
         <div>
-          <div style={styles.label}>AFFLICTIONS</div>
+          <div style={styles.label}>DEBUFFS</div>
           <div style={styles.debuffRow}>
             {me.debuffs.length === 0
-              ? <span style={{ color: COLOR.textDim, fontSize: '11px', fontStyle: 'italic' }}>none</span>
+              ? <span style={{ color: COLOR.textDim, fontSize: '11px', fontStyle: 'italic' }}></span>
               : me.debuffs.map((d, i) => (
                 <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '55' }}>
                   {d.type} {d.turnsLeft}
@@ -105,10 +105,10 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.divider} />
 
       {/* Health */}
-      <div style={styles.label}>VITALITY</div>
+      <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <canvas ref={hpCanvasRef} width={80} height={14} />
-        <span style={{ color: COLOR.hp, fontSize: '14px', fontFamily: "'Cinzel', serif", letterSpacing: '1px' }}>
+        <span style={{ color: COLOR.hp, fontSize: '14px', fontFamily: "'Spectral', serif", letterSpacing: '1px' }}>
           {me.health} / 3
         </span>
       </div>
@@ -194,6 +194,8 @@ const styles = {
     letterSpacing: '1px',
   },
   invGrid: {
+    fontFamily: "'Spectral', serif",
+    fontSize: '13px',
     display: 'flex',
     flexDirection: 'column',
     gap: '3px',
