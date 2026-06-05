@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
 const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
@@ -12,7 +12,6 @@ const COLOR = {
   border: '#3a2e1e',
   danger: '#8b2020',
   heal: '#4a7a3a',
-  warn: '#8a6020',
   hint: '#6a5a48',
   dirBg: '#13110e',
 };
@@ -25,6 +24,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
   useEffect(() => { actRef.current = act; }, [act]);
 
   const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
+  
   const onArsenal = cell?.type === 'arsenal';
   const onHospital = cell?.type === 'hospital';
   const onTreasure = gameData?.treasure &&
@@ -34,6 +34,12 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     me?.y === gameData.treasure?.y;
   const hasTreasure = me?.hasTreasure;
   const hasMedkit = me?.items?.includes('medkit');
+  const corpsesHere = useMemo(
+    () => gameData?.visiblePlayers?.filter(
+      p => p.isDead && p.x === me?.x && p.y === me?.y
+    ) ?? [],
+    [gameData?.visiblePlayers, me?.x, me?.y]
+  );
 
   useEffect(() => {
     const KEY_DIR = {
@@ -86,6 +92,11 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
         if (targetId && !disabled) actRef.current('action:attack', { targetId });
         return;
       }
+      if (key === 'c' || key === 'с') {
+        if (corpsesHere.length > 0 && !disabled)
+          actRef.current('action:loot', { targetId: corpsesHere[0].id });
+        return;
+      }
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
@@ -105,7 +116,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, corpsesHere, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
 
   if (!me) return null;
 
@@ -198,6 +209,14 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
 
         {hasTreasure &&
           <ActionBtn label="[F] DROP TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
+
+        {corpsesHere.map(c => (
+          <ActionBtn
+            key={c.id} label={`[C] LOOT`}
+            color={COLOR.accent} disabled={disabled}
+            onClick={() => act('action:loot', { targetId: c.id })}
+          />
+        ))}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ const {
 
 const fs = require('fs');
 const path = require('path');
+const { actionLoot } = require('./game/actions');
 
 function logGlobal(ev, gameState) {
   const getName = (id) => {
@@ -247,6 +248,16 @@ io.on('connection', (socket) => {
         return;
       }
     }
+    const p = gameState.players.find(p => p.id === socket.id);
+    if (p.actionPoints <= 0) advanceTurn();
+    else broadcastViews();
+  });
+
+  socket.on('action:loot', ({ targetId } = {}) => {
+    if (!isCurrentPlayer(socket.id)) return;
+    const result = actionLoot(gameState, socket.id, targetId);
+    if (!result.ok) return;
+    emitEvent({ event: 'loot', playerId: socket.id, targetId, loot: result.loot });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();

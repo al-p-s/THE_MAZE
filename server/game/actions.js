@@ -383,11 +383,58 @@ function actionMelee(gameState, socketId, targetId) {
   return { ok: true, hit: true, roll, damage: 0.5, targetId: target.id, died };
 }
 
+function actionLoot(gameState, socketId, targetId) {
+  const player = gameState.players.find(p => p.id === socketId);
+  if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
+
+  const corpse = gameState.players.find(p =>
+    !p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y
+  );
+  if (!corpse || corpse.looted) return { ok: false, reason: 'no_corpse' };
+
+  player.actionPoints -= 1;
+  corpse.looted = true;
+
+  const loot = {};
+
+  // ammo / mana / jumps
+  if (corpse.className === 'witch') {
+    loot.mana = corpse.mana ?? 0;
+    player.mana = (player.mana ?? 0) + loot.mana;
+    corpse.mana = 0;
+  } else if (corpse.className === 'reaper') {
+    loot.jumps = corpse.jumps ?? 0;
+    player.jumps = (player.jumps ?? 0) + loot.jumps;
+    corpse.jumps = 0;
+  } else {
+    loot.ammo = corpse.ammo ?? 0;
+    player.ammo += loot.ammo;
+    corpse.ammo = 0;
+  }
+
+  // бомбы
+  if (corpse.bombs > 0) {
+    loot.bombs = corpse.bombs;
+    player.bombs += corpse.bombs;
+    corpse.bombs = 0;
+  }
+
+  // аптечки
+  const medkits = corpse.items?.filter(i => i === 'medkit').length ?? 0;
+  if (medkits > 0) {
+    loot.medkits = medkits;
+    player.items.push(...corpse.items.filter(i => i === 'medkit'));
+    corpse.items = corpse.items.filter(i => i !== 'medkit');
+  }
+
+  return { ok: true, loot };
+}
+
 module.exports = {
   revealCell, revealWall,
   addDebuff, actionMove, actionCheckWall,
   actionUseHospital, actionUseArsenal,
   actionAttack, actionTreasure, actionUseBomb,
   actionCheckCell, actionUseMedkit,
-  actionMelee,
+  actionMelee, actionLoot,
 };

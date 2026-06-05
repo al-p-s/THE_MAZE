@@ -256,11 +256,13 @@ function getPlayerView(gameState, socketId) {
     })
   );
 
-  const visiblePlayers = gameState.players.filter(p => {
-    if (!p.isAlive || p.id === socketId) return false;
-    const key = `${p.x},${p.y}`;
-    return zone.has(key) && !!visibleSet[key]?.visited;
-  });
+  const visiblePlayers = gameState.players
+    .filter(p => {
+      if (p.id === socketId) return false;
+      const key = `${p.x},${p.y}`;
+      return zone.has(key) && !!visibleSet[key]?.visited;
+    })
+    .map(p => ({ ...p, isDead: !p.isAlive }));
 
   return {
     you: player,

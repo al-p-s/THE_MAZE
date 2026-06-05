@@ -225,14 +225,37 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
 function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, isTarget = false) {
   const { cx, cy } = pos;
   const r = CELL * 0.15;
+  const isDead = player.isDead;
 
-  ctx.fillStyle = color;
+  ctx.globalAlpha = isDead ? 0.5 : 1;
+  ctx.fillStyle = isDead ? '#555' : color;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = isDead ? '#333' : '#000';
+  ctx.lineWidth = isDead ? 1 : 3;
   ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  if (isDead) {
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.6, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.6, cy + r * 0.6);
+    ctx.moveTo(cx + r * 0.6, cy - r * 0.6);
+    ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
+    ctx.stroke();
+    if (player.looted) {
+      ctx.fillStyle = '#555';
+      ctx.font = `${r * 0.9}px "Courier New"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('∅', cx, cy + r * 1.3);
+    }
+    return; // не рисуем хелсбар и клад
+  }
+
   if (isTarget) {
     ctx.beginPath();
     ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);

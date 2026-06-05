@@ -22,7 +22,7 @@ const COLOR = {
   bg: '#0e0c09',
   border: '#4a3a22',
   text: '#a89070',
-  textDim: '#5a4a38',
+  textDim: '#c8c0b0',
   accent: '#c8a84b',
   danger: '#8b2020',
   warn: '#8a6020',
@@ -233,6 +233,17 @@ function formatEvent(ev, myId) {
     case 'treasure':
       if (!isMe) return null;
       return ev.action === 'dig' ? `Treasure dug up` : ev.action === 'pickup' ? `Treasure picked up` : `Treasure dropped`;
+    case 'loot': {
+      if (!isMe) return null;
+      const { loot } = ev;
+      const parts = [];
+      if (loot.ammo) parts.push(`+${loot.ammo} ammo`);
+      if (loot.mana) parts.push(`+${loot.mana} mana`);
+      if (loot.jumps) parts.push(`+${loot.jumps} jumps`);
+      if (loot.bombs) parts.push(`+${loot.bombs} bombs`);
+      if (loot.medkits) parts.push(`+${loot.medkits} medkits`);
+      return `Looted: ${parts.length ? parts.join(', ') : 'nothing'}`;
+    }
     case 'player_disconnected':
       return `A player disconnected`;
     default:
@@ -362,7 +373,7 @@ const styles = {
     marginBottom: '16px',
   },
   waitSub: {
-    fontSize: '14px',
+    fontSize: '18px',
     color: COLOR.textDim,
     letterSpacing: '2px',
     marginBottom: '24px',
@@ -382,7 +393,7 @@ const styles = {
   },
   overBox: { textAlign: 'center', fontFamily: "'Spectral', serif" },
   overTitle: { fontSize: '56px', fontWeight: 'bold', letterSpacing: '8px' },
-  overSub: { fontSize: '14px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
+  overSub: { fontSize: '18px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
   modalOverlay: {
     position: 'fixed', inset: 0, background: COLOR.bg + 'cc', backdropFilter: 'blur(4px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
