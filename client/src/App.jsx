@@ -174,7 +174,7 @@ function OverScreen({ winner, myId, reason }) {
     <div style={styles.center}>
       <div style={styles.overBox}>
         <div style={{...styles.overTitle, color: won ? COLOR.accent : COLOR.danger}}>
-          {won ? 'WINNER' : 'LOOSER'}
+          {won ? 'WINNER' : 'LOSER'}
         </div>
         <div style={styles.overSub}>{reasonLabel(reason)}</div>
       </div>

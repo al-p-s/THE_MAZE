@@ -7,7 +7,7 @@ const DIR_GRID = { top: '1/2', right: '2/3', bottom: '3/2', left: '2/1' }; // ro
 const COLOR = {
   accent: '#c8a84b',
   dim: '#3a3228',
-  dimText: '#5a4a38',
+  textDim: '#c8c0b0',
   bg: '#0e0c09',
   border: '#3a2e1e',
   danger: '#8b2020',
@@ -124,7 +124,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
   const modeBtn = (m, label, color) => (
     <button
       key={m}
-      style={{ ...styles.modeBtn, borderColor: mode === m ? (color || COLOR.accent) : COLOR.dim, color: mode === m ? (color || COLOR.accent) : COLOR.dimText }}
+      style={{ ...styles.modeBtn, borderColor: mode === m ? (color || COLOR.accent) : COLOR.dim, color: mode === m ? (color || COLOR.accent) : COLOR.textDim }}
       onClick={() => setMode(m)}
     >
       {label}
@@ -137,11 +137,11 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
   return (
     <div style={styles.root}>
       {/* Mode selector */}
-      <div style={styles.modeRow}>
+      <div style={{ ...styles.modeRow, opacity: isMyTurn ? 1 : 0.5 }}>
         {modeBtn('move', '[1] MOVE', COLOR.accent)}
-        {modeBtn('bomb_wall', '[3] BOMB', COLOR.warn)}
-        {modeBtn('attack', '[2] ATTACK', COLOR.danger)}
-        {modeBtn('check', '[4] CHECK', COLOR.hint)}
+        {modeBtn('bomb_wall', '[3] BOMB', COLOR.accent)}
+        {modeBtn('attack', '[2] ATTACK', COLOR.accent)}
+        {modeBtn('check', '[4] CHECK', COLOR.accent)}
       </div>
 
       {/* Direction pad */}
@@ -159,10 +159,12 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
               {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
             </div>
           </div>
-          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
+            fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
             {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
           </div>
-          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: modeDisabled ? COLOR.dim : COLOR.hint, lineHeight: '1.8', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
+            fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
             {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
@@ -170,7 +172,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
 
       {/* End turn */}
       <button
-        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.3 }}
+        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.5 }}
         disabled={!isMyTurn}
         onClick={() => act('action:end_turn')}
       >
@@ -196,7 +198,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
           <ActionBtn label="[F] DIG UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
 
         {hasTreasure &&
-          <ActionBtn label="[F] DROP TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
+          <ActionBtn label="[F] DROP TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
       </div>
     </div>
   );
@@ -228,11 +230,12 @@ const styles = {
     gap: '4px',
   },
   modeBtn: {
-    fontFamily: "'Cinzel', serif",
+    fontFamily: "'Spectral', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 6px',
-    fontSize: '12px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -252,14 +255,15 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: COLOR.dim,
+    color: COLOR.textDim,
     fontSize: '18px',
   },
   dirBtn: {
-    fontFamily: "'Cinzel', serif",
+    fontFamily: "'Spectral', serif",
     background: COLOR.dirBg,
     border: `1px solid ${COLOR.dim}`,
     color: COLOR.accent,
+    fontWeight: 'bold',
     fontSize: '16px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -278,22 +282,24 @@ const styles = {
     gap: '4px',
   },
   ctxBtn: {
-    fontFamily: "'Cinzel', serif",
+    fontFamily: "'Spectral', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 8px',
-    fontSize: '13px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
   },
   endBtn: {
-    fontFamily: "'Cinzel', serif",
+    fontFamily: "'Spectral', serif",
     background: 'none',
     border: `1px solid ${COLOR.border}`,
-    color: COLOR.dimText,
+    color: COLOR.textDim,
     padding: '6px',
-    fontSize: '13px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '2px',
     cursor: 'pointer',
     borderRadius: '2px',

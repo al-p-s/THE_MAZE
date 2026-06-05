@@ -9,8 +9,7 @@ const COLOR = {
   debuffDefault: '#6a6a6a',
   dim: '#3a3228',
   border: '#3a2e1e',
-  text: '#a89070',
-  textDim: '#5a4a38',
+  textDim: '#c8c0b0',
   hpEmpty: '#2a1a1a',
   hpBorder: '#5a3020',
   hpHighlight: '#c84040',
@@ -71,8 +70,8 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         background: isMyTurn ? COLOR.bgActive : COLOR.bgInactive,
         borderColor: isMyTurn ? COLOR.accent : COLOR.borderInactive,
       }}>
-        <span style={{ color: isMyTurn ? COLOR.accent : COLOR.textDim, fontSize: '13px', letterSpacing: '3px', fontFamily: "'Cinzel', serif" }}>
-          {isMyTurn ? '⚔ YOUR TURN' : `PLAYER #${currentTurn?.playerIndex ?? '?'} ACTS`}
+        <span style={{ opacity: isMyTurn ? 1 : 0.5, color: isMyTurn ? COLOR.accent : COLOR.accent, fontWeight: 'bold', fontSize: '14px', letterSpacing: '3px', fontFamily: "'Cinzel', serif" }}>
+          {isMyTurn ? 'YOUR TURN' : `PLAYER #${currentTurn?.playerIndex ?? '?'} TURN...`}
         </span>
       </div>
 
@@ -108,7 +107,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <canvas ref={hpCanvasRef} width={80} height={14} />
-        <span style={{ color: COLOR.hp, fontSize: '14px', fontFamily: "'Spectral', serif", letterSpacing: '1px' }}>
+        <span style={{ color: COLOR.hp, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Sinzel', serif", letterSpacing: '1px' }}>
           {me.health} / 3
         </span>
       </div>
@@ -132,9 +131,9 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
 function InvItem({ symbol, label, count }) {
   return (
     <div style={styles.invItem}>
-      <span style={{ color: COLOR.accent, fontSize: '12px', width: '16px' }}>{symbol}</span>
-      <span style={{ color: COLOR.text, fontSize: '12px', fontFamily: "'Spectral', serif", marginLeft: '6px' }}>{label}</span>
-      <span style={{ color: count > 0 ? COLOR.accent : COLOR.textDim, fontSize: '14px', fontFamily: "'Cinzel', serif", marginLeft: 'auto' }}>{count}</span>
+      <span style={{ color: COLOR.accent, fontSize: '14px', width: '16px' }}>{symbol}</span>
+      <span style={{ color: COLOR.textDim, fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: '6px' }}>{label}</span>
+      <span style={{ color: count > 0 ? COLOR.accent : COLOR.textDim, fontWeight: 'bold', fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: 'auto' }}>{count}</span>
     </div>
   );
 }
@@ -163,7 +162,8 @@ const styles = {
     marginTop: '12px',
   },
   label: {
-    fontSize: '9px',
+    fontSize: '14px',
+    fontWeight: 'bold',
     letterSpacing: '3px',
     color: COLOR.textDim,
     marginBottom: '6px',
