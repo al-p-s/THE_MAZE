@@ -366,7 +366,7 @@ function actionMelee(gameState, socketId, targetId) {
 
   player.actionPoints -= 1;
   const roll = rollDice();
-  if (roll <= 3) return { ok: true, hit: false, roll };
+  if (roll <= 3) return { ok: true, hit: false, roll, targetId: target.id };
 
   target.health -= 0.5;
   if (target.hasTreasure) {

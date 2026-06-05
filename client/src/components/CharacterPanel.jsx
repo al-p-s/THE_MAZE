@@ -183,7 +183,7 @@ const styles = {
     letterSpacing: '3px',
   },
   charTitle: {
-    fontSize: '10px',
+    fontSize: '15px',
     color: '#555',
     letterSpacing: '2px',
     marginTop: '2px',
@@ -194,18 +194,18 @@ const styles = {
     gap: '3px',
   },
   infoLabel: {
-    fontSize: '8px',
+    fontSize: '15px',
     letterSpacing: '2px',
     color: '#444',
     marginBottom: '2px',
   },
   infoValue: {
-    fontSize: '11px',
+    fontSize: '15px',
     color: '#aaa',
     letterSpacing: '1px',
   },
   passive: {
-    fontSize: '10px',
+    fontSize: '13px',
     color: '#777',
     lineHeight: '1.5',
   },

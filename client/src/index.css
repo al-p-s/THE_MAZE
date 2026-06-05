@@ -16,3 +16,17 @@ html, body, #root {
 html {
   touch-action: none;
 }
+
+.event-log-list::-webkit-scrollbar {
+  width: 12px;
+}
+.event-log-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.event-log-list::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 0;
+}
+.event-log-list::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}

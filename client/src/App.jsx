@@ -56,7 +56,8 @@ export default function App() {
     socket.on('game:event', (ev) => {
       const note = makeNotification(ev, myIdRef.current);
       if (note) setState(s => ({ ...s, notification: note }));
-      addEvent(formatEvent(ev));
+      const msg = formatEvent(ev, myIdRef.current);
+      if (msg) addEvent(msg);
     });
 
     return () => {
@@ -165,28 +166,59 @@ function OverScreen({ winner, myId, reason }) {
   );
 }
 
-function formatEvent(ev) {
-  const id = ev.playerId ? `#${ev.playerId.slice(0,4)}` : '';
+function formatEvent(ev, myId) {
+  const DIR = { top: '↑', right: '→', bottom: '↓', left: '←' };
+  const isMe = ev.playerId === myId;
+  const isTarget = ev.targetId === myId;
+
   switch (ev.event) {
-    case 'moved': return `${id} moved`;
-    case 'move_blocked': return `${id} hit a wall`;
-    case 'attack': return ev.hit
-      ? `${id} attacked → ${ev.damage} урон${ev.debuff ? ` [${ev.debuff}]` : ''}${ev.died ? ' 💀' : ''}`
-      : `${id} missed`;
-    case 'melee': return ev.hit
-      ? `${id} melee → ${ev.damage} damage${ev.died ? ' 💀' : ''}`
-      : `${id} melee — miss`;
-    case 'bomb_used': return `${id} used a bomb (${ev.mode})`;
-    case 'mine_triggered': return `${id} step on a mine 💥${ev.died ? ' 💀' : ''}`;
-    case 'arsenal_used': return `${id} looted Arsenal → ${ev.reward}`;
-    case 'hospital_used': return `${id} used Hospital → ${ev.choice}`;
-    case 'medkit_used': return `${id} used Medkit`;
-    case 'treasure': return `${id} → treasure: ${ev.action}`;
-    case 'exit_found': return `${id} detect the exit!`;
-    case 'cell_checked': return `${id} checked a cell`;
-    case 'wall_checked': return `${id} checked a wall`;
-    case 'player_disconnected': return `${id} disconnected`;
-    default: return `${id} ${ev.event}`;
+    case 'moved':
+      if (!isMe) return null;
+      return `Moved ${DIR[ev.direction] ?? ''}`;
+    case 'move_blocked':
+      if (!isMe) return null;
+      return `Wall ${DIR[ev.direction] ?? ''}${ev.isEdge ? ' (outer)' : ''}`;
+    case 'exit_found':
+      if (!isMe) return null;
+      return `Exit found ${DIR[ev.direction] ?? ''}`;
+    case 'wall_checked':
+      if (!isMe) return null;
+      return ev.isExit ? `Exit ${DIR[ev.direction] ?? ''}` : ev.hasWall ? `Wall ${DIR[ev.direction] ?? ''}` : `Passage ${DIR[ev.direction] ?? ''}`;
+    case 'cell_checked':
+      if (!isMe) return null;
+      return ev.content ? `Cell ${DIR[ev.direction] ?? ''}: DANGER (${ev.content})` : `Cell ${DIR[ev.direction] ?? ''}: clear`;
+    case 'attack':
+      if (isMe) return ev.hit ? `Shot — ${ev.damage} dmg${ev.debuff ? ` [${ev.debuff}]` : ''}${ev.died ? ' 💀' : ''}` : `Shot — miss`;
+      if (isTarget) return ev.hit ? `Shot at you — ${ev.damage} dmg${ev.debuff ? ` [${ev.debuff}]` : ''}` : `Someone shot at you — miss`;
+      return null;
+    case 'melee':
+      if (isMe) return ev.hit ? `Melee — ${ev.damage} dmg${ev.died ? ' 💀' : ''}` : `Melee — miss`;
+      if (isTarget) return ev.hit ? `Melee hit at you — ${ev.damage} dmg` : `Melee hit at you — miss`;
+      return null;
+    case 'mine_triggered': {
+      const inVictims = ev.victims?.find(v => v.id === myId);
+      if (!inVictims && ev.playerId !== myId) return null;
+      return `Mine! -1.5 HP${ev.died ? ' 💀' : ''}`;
+    }
+    case 'bomb_used':
+      if (!isMe) return null;
+      return ev.mode === 'wall' ? `Wall blown ${DIR[ev.direction] ?? ''}` : `Mine planted`;
+    case 'arsenal_used':
+      if (!isMe) return null;
+      return ev.reward === 'ammo' ? `Arsenal: +2 ammo` : `Arsenal: +2 bombs`;
+    case 'hospital_used':
+      if (!isMe) return null;
+      return ev.choice === 'heal' ? `Hospital: fully healed` : `Hospital: +1 medkit`;
+    case 'medkit_used':
+      if (!isMe) return null;
+      return `Medkit: +1 HP`;
+    case 'treasure':
+      if (!isMe) return null;
+      return ev.action === 'dig' ? `Treasure dug up` : ev.action === 'pickup' ? `Treasure picked up` : `Treasure dropped`;
+    case 'player_disconnected':
+      return `A player disconnected`;
+    default:
+      return null;
   }
 }
 
@@ -198,7 +230,7 @@ function makeNotification(ev, myId) {
   }
   if (ev.event === 'wall_checked' && ev.playerId === myId) {
     return ev.isEdge
-      ? { text: 'NOTHING...', color: '#555' }
+      ? { text: 'NOTHING...', color: '#ffffff' }
       : ev.hasWall
         ? { text: 'WALL!', color: '#ffaa00' }
         : { text: 'FREE!', color: '#00ffcc' };
@@ -208,35 +240,34 @@ function makeNotification(ev, myId) {
   }
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge
-      ? { text: 'NOTHING...', color: '#555' }
+      ? { text: 'NOTHING...', color: '#ffffff' }
       : { text: 'WALL!', color: '#ffaa00' };
   }
   if (ev.event === 'attack' && ev.playerId === myId) {
     const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
     return ev.hit && ev.damage > 0
       ? { text: `HIT! -${ev.damage}`, color: '#ff4488', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
-      : { text: 'MISS!', color: '#555' };
+      : { text: 'MISS!', color: '#ffffff' };
   }
   if (ev.event === 'attack' && ev.targetId === myId) {
-    const debuffColor = ev.debuff === 'W' ? '#ffaa00' : ev.debuff === 'S' ? '#00aaff' : ev.debuff === 'P' ? '#ff2200' : null;
-    return ev.hit && ev.damage > 0
-      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: ev.debuff ? `[${ev.debuff}] ${ev.debuffTurns} turns` : null, subColor: debuffColor }
-      : { text: 'DANGER!\nSOMEONE IS SHOOTING AT YOU!', color: '#ff4444' };
+    return ev.hit
+      ? { text: ev.debuff ? `-${ev.damage} HP, [${ev.debuff}] ${ev.debuffTurns} turns` : `-${ev.damage} HP`, color: '#ff4444', sub: 'SHOT AT YOU!' }
+      : { text: 'MISS!', color: '#ffffff', sub: 'SHOT AT YOU!' };
   }
   if (ev.event === 'melee' && ev.playerId === myId) {
     return ev.hit && ev.damage > 0
       ? { text: `HIT! -${ev.damage}`, color: '#ff4488' }
-      : { text: 'MISS!', color: '#555' };
+      : { text: 'MISS!', color: '#ffffff' };
   }
   if (ev.event === 'melee' && ev.targetId === myId) {
-    return ev.hit && ev.damage > 0
-      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: 'MELEE HIT!' }
-      : { text: 'DANGER!\nMELEE MISS', color: '#ff4444' };
+    return ev.hit
+      ? { text: `-${ev.damage} HP`, color: '#ff4444', sub: 'MELEE HIT AT YOU!' }
+      : { text: 'MISS!', color: '#ffffff', sub: 'MELEE HIT AT YOU!' };
   }
   if (ev.event === 'bomb_used' && ev.playerId === myId) {
     return ev.mode === 'wall'
       ? { text: 'BOOM!', color: '#ffaa00' }
-      : { text: 'THE MINE IS PLANTED!', color: '#ff2200' };
+      : { text: 'THE MINE IS PLANTED!', color: '#ffaa00' };
   }
   if (ev.event === 'mine_triggered') {
     const inVictims = ev.victims?.find(v => v.id === myId);

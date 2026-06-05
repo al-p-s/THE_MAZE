@@ -10,7 +10,7 @@ export default function EventLog({ events }) {
   return (
     <div style={styles.root}>
       <div style={styles.header}>LOG</div>
-      <div style={styles.list}>
+      <div style={styles.list} className="event-log-list">
         {events.length === 0
           ? <div style={styles.empty}>— no events —</div>
           : events.map((msg, i) => (
@@ -35,7 +35,7 @@ const styles = {
     fontFamily: "'Courier New', monospace",
   },
   header: {
-    fontSize: '9px',
+    fontSize: '13px',
     letterSpacing: '3px',
     color: '#444',
     padding: '8px 12px 4px',
@@ -51,7 +51,7 @@ const styles = {
   },
   empty: {
     color: '#333',
-    fontSize: '10px',
+    fontSize: '13px',
     textAlign: 'center',
     marginTop: '20px',
     letterSpacing: '1px',
@@ -59,7 +59,7 @@ const styles = {
   entry: {
     display: 'flex',
     gap: '8px',
-    fontSize: '10px',
+    fontSize: '13px',
     lineHeight: '1.4',
   },
   index: {
