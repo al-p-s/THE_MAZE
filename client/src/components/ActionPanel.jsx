@@ -13,7 +13,6 @@ const COLOR = {
   danger: '#8b2020',
   heal: '#4a7a3a',
   warn: '#8a6020',
-  treasure: '#c8a84b',
   hint: '#6a5a48',
   dirBg: '#13110e',
 };
@@ -182,7 +181,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
       {/* Contextual actions */}
       <div style={styles.contextRow}>
 
-        {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
+        {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.accent} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
 
         {onHospital && <>
           <ActionBtn label="[Q] HEAL" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
@@ -192,13 +191,13 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
         {hasMedkit && <ActionBtn label="[X] USE MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_medkit')} />}
 
         {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
-          <ActionBtn label="[F] PICK UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
+          <ActionBtn label="[F] PICK UP A TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
 
         {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
-          <ActionBtn label="[F] DIG UP A TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
+          <ActionBtn label="[F] DIG UP A TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
 
         {hasTreasure &&
-          <ActionBtn label="[F] DROP TREASURE" color={COLOR.treasure} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
+          <ActionBtn label="[F] DROP TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
       </div>
     </div>
   );
@@ -218,8 +217,7 @@ function ActionBtn({ label, onClick, disabled, color }) {
 
 const styles = {
   root: {
-    padding: '10px 12px',
-    borderBottom: `1px solid ${COLOR.border}`,
+    padding: '4px 12px',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',

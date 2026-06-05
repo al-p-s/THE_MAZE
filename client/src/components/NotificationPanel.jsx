@@ -39,7 +39,7 @@ export default function NotificationPanel({ notification }) {
 
 const styles = {
   root: {
-    padding: '10px 12px',
+    padding: '4px 12px',
     borderBottom: '1px solid #1a1a1a',
     flex: 1,
     display: 'flex',

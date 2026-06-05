@@ -3,7 +3,7 @@ import EventLog from './EventLog';
 const COLOR = {
   accent: '#c8a84b',
   text: '#a89070',
-  textDim: '#5a4a38',
+  textDim: '#c8c0b0',
   border: '#4a3a22',
   itemBg: '#13110e',
   itemBorder: '#1e1a14',
@@ -126,28 +126,21 @@ export default function CharacterPanel({ me, events }) {
 
             <div style={styles.ornamentDivider}>
               <div style={styles.ornamentLine} />
-
-              <span style={styles.ornamentDiamond}>
-                ◇
-              </span>
-
+              <span style={styles.ornamentDiamond}> ◇ </span>
               <div style={styles.ornamentLine} />
             </div>
 
             {/* Weapon */}
             <div style={styles.infoBlock}>
               <div style={styles.sectionLabel}>WEAPON</div>
-
-              <div style={styles.invItem}>
-                <span style={styles.invSymbol}>◆</span>
-                <span style={styles.invText}>{cls.weapon}</span>
+              <div style={styles.passiveRow}>
+                <span style={styles.passiveTag}>{cls.weapon}</span>
               </div>
             </div>
 
             {/* Passives */}
             <div style={styles.infoBlock}>
               <div style={styles.sectionLabel}>PASSIVES</div>
-
               <div style={styles.passiveRow}>
                 {cls.passives.map((p, i) => (
                   <span key={i} style={styles.passiveTag}>
@@ -176,7 +169,6 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: "'Courier New', monospace",
     overflow: 'hidden',
   },
   portraitSection: {
@@ -205,18 +197,20 @@ const styles = {
     height: '100%',
     objectFit: 'cover',
     display: 'block',
-    filter: 'brightness(0.9) contrast(1.05)',
+    filter: 'brightness(1.0) contrast(1.05)',
   },
   charName: {
     fontSize: '28px',
+    fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
     letterSpacing: '6px',
     color: COLOR.accent,
-    fontFamily: "'Cinzel', serif",
     textTransform: 'uppercase',
   },
   charTitle: {
-    fontFamily: "'Spectral', serif",
-    fontSize: '14px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
     letterSpacing: '3px',
     color: COLOR.textDim,
     marginTop: '2px',
@@ -225,28 +219,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '3px',
-  },
-  infoLabel: {
-    fontSize: '15px',
-    letterSpacing: '2px',
-    color: COLOR.textDim,
-    marginBottom: '2px',
-  },
-  infoValue: {
-    fontSize: '15px',
-    color: COLOR.text,
-    letterSpacing: '1px',
-  },
-  passive: {
-    fontSize: '13px',
-    color: COLOR.textDim,
-    lineHeight: '1.5',
-  },
-  divider: {
-    height: '1px',
-    background: `linear-gradient(to right, transparent, ${COLOR.border}, transparent)`,
-    flexShrink: 0,
-    margin: '0',
   },
   logWrap: {
     flex: 1,
@@ -261,11 +233,12 @@ const styles = {
     padding: '20px 0',
   },
   sectionLabel: {
-    fontSize: '9px',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
     letterSpacing: '3px',
     color: COLOR.textDim,
     marginBottom: '6px',
-    fontFamily: "'Cinzel', serif",
     textTransform: 'uppercase',
   },
   sectionDivider: {
@@ -280,15 +253,10 @@ const styles = {
     background: COLOR.itemBg,
     border: `1px solid ${COLOR.itemBorder}`,
   },
-  invSymbol: {
-    color: COLOR.accent,
-    width: '16px',
-    fontSize: '12px',
-  },
   invText: {
     color: COLOR.text,
-    fontSize: '12px',
-    fontFamily: "'Spectral', serif",
+    fontSize: '14px',
+    fontWeight: 'bold',
   },
   passiveRow: {
     display: 'flex',
@@ -296,19 +264,19 @@ const styles = {
     gap: '4px',
   },
   passiveTag: {
-    fontSize: '10px',
+    fontSize: '12px',
+    fontWeight: 'bold',
     padding: '2px 5px',
-    border: `1px solid ${COLOR.border}`,
     color: COLOR.text,
     letterSpacing: '1px',
-    fontFamily: "'Cinzel', serif",
+    background: COLOR.itemBg,
+    border: `1px solid ${COLOR.itemBorder}`,
   },
   ornamentDivider: {
     display: 'flex',
     alignItems: 'center',
     margin: '6px 0 10px',
   },
-
   ornamentLine: {
     flex: 1,
     height: '1px',
@@ -319,10 +287,9 @@ const styles = {
       transparent
     )`,
   },
-
   ornamentDiamond: {
     margin: '0 8px',
-    color: COLOR.accent,
-    fontSize: '9px',
+    color: COLOR.text,
+    fontSize: '11px',
   },
 };

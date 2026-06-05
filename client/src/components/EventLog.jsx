@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 const COLOR = {
   text: '#a89070',
-  textDim: '#5a4a38',
+  textDim: '#c8c0b0',
   border: '#4a3a22',
   empty: '#333',
   index: '#333',
@@ -59,7 +59,7 @@ const styles = {
   empty: {
     fontFamily: "'Spectral', serif",
     fontSize: '13px',
-    color: COLOR.empty,
+    color: COLOR.textDim,
     textAlign: 'center',
     marginTop: '20px',
     letterSpacing: '1px',
@@ -78,7 +78,8 @@ const styles = {
   },
   msg: {
     fontFamily: "'Spectral', serif",
-    color: COLOR.text,
+    fontWeight: 'bold',
+    color: COLOR.textDim,
     wordBreak: 'break-word',
   },
   logDivider: {
@@ -98,14 +99,15 @@ const styles = {
   },
   logTitle: {
     margin: '0 8px',
-    fontSize: '10px',
+    fontFamily: "'Cinzel', serif",
+    fontSize: '14px',
+    fontWeight: 'bold',
     letterSpacing: '4px',
     color: COLOR.accent,
-    fontFamily: "'Cinzel', serif",
   },
   logDiamond: {
     margin: '0 4px',
-    fontSize: '9px',
     color: COLOR.accent,
+    fontSize: '11px',
   },
 };

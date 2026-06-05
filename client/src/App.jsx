@@ -127,7 +127,9 @@ export default function App() {
       <div style={styles.rightbar}>
         {state.screen === 'game' && <>
           <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
+          <div style={styles.divider} />
           <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} />
+          <div style={styles.divider} />
           <NotificationPanel notification={state.notification} />
         </>}
       </div>
@@ -248,7 +250,7 @@ function makeNotification(ev, myId) {
     return ev.isEdge
       ? { text: 'NOTHING...', color: COLOR.miss }
       : ev.hasWall
-        ? { text: 'WALL!', color: COLOR.warn }
+        ? { text: 'WALL!', color: COLOR.miss }
         : { text: 'FREE!', color: COLOR.accent };
   }
   if (ev.event === 'exit_found' && ev.playerId === myId) {
@@ -257,7 +259,7 @@ function makeNotification(ev, myId) {
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge
       ? { text: 'NOTHING...', color: COLOR.miss }
-      : { text: 'WALL!', color: COLOR.warn };
+      : { text: 'WALL!', color: COLOR.miss };
   }
   if (ev.event === 'attack' && ev.playerId === myId) {
     const debuffColor = ev.debuff === 'W' ? COLOR.debuffW : ev.debuff === 'S' ? COLOR.debuffS : ev.debuff === 'P' ? COLOR.debuffP : null;
@@ -282,7 +284,7 @@ function makeNotification(ev, myId) {
   }
   if (ev.event === 'bomb_used' && ev.playerId === myId) {
     return ev.mode === 'wall'
-      ? { text: 'BOOM!', color: COLOR.explosion, sub: 'Wall blown', subColor: COLOR.warn }
+      ? { text: 'BOOM!', color: COLOR.explosion, sub: 'Wall blown', subColor: COLOR.miss }
       : { text: 'THE MINE IS PLANTED!', color: COLOR.explosion };
   }
   if (ev.event === 'mine_triggered') {
@@ -397,6 +399,11 @@ const styles = {
   modalBtnCancel: {
     background: 'none', border: `1px solid ${COLOR.border}`, color: COLOR.textDim,
     padding: '8px 16px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer',
+  },
+  divider: {
+    height: '1px',
+    background: `linear-gradient(to right, transparent, ${COLOR.border}, transparent)`,
+    margin: '10px 0',
   },
 };
 

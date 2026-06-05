@@ -107,7 +107,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <canvas ref={hpCanvasRef} width={80} height={14} />
-        <span style={{ color: COLOR.hp, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Sinzel', serif", letterSpacing: '1px' }}>
+        <span style={{ color: COLOR.hp, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Cinzel', serif", letterSpacing: '1px' }}>
           {me.health} / 3
         </span>
       </div>
@@ -147,8 +147,7 @@ function debuffColor(type) {
 
 const styles = {
   root: {
-    padding: '14px',
-    borderBottom: `1px solid ${COLOR.border}`,
+    padding: '4px 12px',
     background: COLOR.bgInactive,
   },
   turnBanner: {
@@ -164,10 +163,10 @@ const styles = {
   label: {
     fontSize: '14px',
     fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
     letterSpacing: '3px',
     color: COLOR.textDim,
     marginBottom: '6px',
-    fontFamily: "'Cinzel', serif",
     textTransform: 'uppercase',
   },
   apRow: {
