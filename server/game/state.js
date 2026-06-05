@@ -22,6 +22,7 @@ function createPlayer(socketId, index, spawnCell) {
     visibleCells: {},
     isAlive: true,
     actionPoints: 2,
+    direction: 'bottom',
   };
 }
 

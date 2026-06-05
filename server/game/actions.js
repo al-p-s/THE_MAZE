@@ -12,6 +12,7 @@ function actionMove(gameState, socketId, direction) {
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
   const ny = player.y + dy;
+  player.direction = direction;
   const isOutside = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
   if (cell.walls[direction] && !isOutside) {

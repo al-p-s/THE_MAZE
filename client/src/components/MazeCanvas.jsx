@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 const WALL = 3;
 
@@ -18,9 +18,32 @@ const COLOR = {
   grid: '#1e1e1e',
 };
 
+const SPRITES = {
+  pinkerton: {
+    top: '/sprites/pinkerton/02_back.png',
+    bottom: '/sprites/pinkerton/02_front.png',
+    left: '/sprites/pinkerton/02_left.png',
+    right: '/sprites/pinkerton/02_right.png',
+  }
+};
+
 export default function MazeCanvas({ gameData, myId, targetId }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const spritesRef = useRef({});
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  useEffect(() => {
+    for (const [cls, dirs] of Object.entries(SPRITES)) {
+      spritesRef.current[cls] = {};
+      for (const [dir, src] of Object.entries(dirs)) {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => setForceUpdate(n => n + 1);
+        spritesRef.current[cls][dir] = img;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!gameData || !containerRef.current) return;
@@ -33,8 +56,8 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId);
-  }, [gameData, targetId, myId]);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current);
+  }, [gameData, targetId, myId, forceUpdate]);
 
   if (!gameData) return null;
 
@@ -45,7 +68,7 @@ export default function MazeCanvas({ gameData, myId, targetId }) {
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -62,7 +85,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId) {
       drawCellWalls(ctx, cell, CELL);
 
   // Draw player
-  if (you) drawPlayer(ctx, you, CELL, visiblePlayers, targetId);
+  if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId);
 }
 
 function drawExit(ctx, px, py, CELL, direction) {
@@ -111,9 +134,8 @@ function drawCellFloor(ctx, cell, CELL, exit, myId) {
   }
 
   // POI / content tint
-  if (type === 'exit') drawTile(ctx, px, py, COLOR.exit, '⬆', 'ВЫХОД', CELL);
-  if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL, cell.inZone);
-  if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL, cell.inZone);
+  if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
+  if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
   if (content === 'mine') {
     const isOwner = cell.mineOwner === myId;
     ctx.globalAlpha = cell.inZone ? 1 : 0.4;
@@ -215,7 +237,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
   }
 }
 
-function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
+function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = null) {
   // группируем visiblePlayers по клеткам
   const byCell = {};
   for (const p of visiblePlayers) {
@@ -229,9 +251,9 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
   const myCellmates = byCell[myKey] || [];
   const myTotal = myCellmates.length + 1;
   const myPositions = getPositions(you.x, you.y, CELL, myTotal);
-  drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true);
+  drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true, sprites, false, true);
   myCellmates.forEach((p, i) => {
-    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, p.id === targetId);
+    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, sprites, p.id === targetId, false);
   });
 
   // рисуем остальных visible (не в моей клетке)
@@ -239,25 +261,32 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
     if (key === myKey) continue;
     const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
     players.forEach((p, i) => {
-      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false, p.id === targetId);
+      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false, sprites, p.id === targetId, false);
     });
   }
 }
 
-function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, isTarget = false) {
+function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, isTarget = false, isMe = false){
   const { cx, cy } = pos;
   const r = CELL * 0.15;
   const isDead = player.isDead;
 
-  ctx.globalAlpha = isDead ? 0.5 : 1;
-  ctx.fillStyle = isDead ? '#555' : color;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = isDead ? '#333' : '#000';
-  ctx.lineWidth = isDead ? 1 : 3;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  const img = sprites?.[player.className]?.[player.direction ?? 'bottom'];
+  if (!isDead && img?.complete && img.naturalWidth > 0) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, cx - r * 1.5, cy - r * 2, r * 3, r * 4);
+  } else {
+    ctx.globalAlpha = isDead ? 0.5 : 1;
+    ctx.fillStyle = isDead ? '#555' : color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isDead ? '#333' : '#000';
+    ctx.lineWidth = isDead ? 1 : 3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   if (isDead) {
     ctx.strokeStyle = '#888';
@@ -296,42 +325,38 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, isTarget 
     ctx.fillText('◆', cx, cy - r - r * 0.5);
   }
 
-  drawHealthBar(ctx, cx, cy, r, player.health);
+  drawHealthBar(ctx, cx, cy, r, player.health, isMe);
 }
 
-function drawHealthBar(ctx, cx, cy, r, health) {
+function drawHealthBar(ctx, cx, cy, r, health, isMe) {
+  const barW = r * 1.5;
+  const barH = r * 0.22;
+  const x = cx - barW / 2;
+  const y = cy - r * 1.2;
+
+  const segW = barW / 3;
+
   for (let i = 0; i < 3; i++) {
     const hp = Math.max(0, Math.min(1, health - i));
-    const spacing = r * 0.6;
-    const dotX = cx - spacing + i * spacing;
-    const dotY = cy - r * 0.8;
+    const sx = x + i * segW;
 
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, r * 0.33, 0, Math.PI * 2);
-    ctx.fillStyle = '#333';
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // фон
+    ctx.fillStyle = '#1a0a0a';
+    ctx.fillRect(sx + 1, y, segW - 2, barH);
 
+    // заполнение
     if (hp >= 1) {
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, r * 0.33, 0, Math.PI * 2);
-      ctx.fillStyle = '#cc3333';
-      ctx.fill();
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = isMe ? '#33cc33' : '#cc3333';
+      ctx.fillRect(sx + 1, y, segW - 2, barH);
     } else if (hp === 0.5) {
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, r * 0.33, Math.PI * 0.5, Math.PI * 1.5);
-      ctx.closePath();
-      ctx.fillStyle = '#cc3333';
-      ctx.fill();
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = isMe ? '#33cc33' : '#cc3333';
+      ctx.fillRect(sx + 1, y, (segW - 2) / 2, barH);
     }
+
+    // граница сегмента
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx, y, segW, barH);
   }
 }
 

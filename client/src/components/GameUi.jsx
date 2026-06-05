@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 
 const COLOR = {
   accent: '#c8a84b',
-  hp: '#8b2020',
+  hp: '#2d6e2d',
   debuffW: '#c8860a',
   debuffS: '#2e6a8a',
   debuffP: '#8b1a1a',
@@ -12,7 +12,7 @@ const COLOR = {
   textDim: '#c8c0b0',
   hpEmpty: '#2a1a1a',
   hpBorder: '#5a3020',
-  hpHighlight: '#c84040',
+  hpHighlight: '#4a9e4a',
   bgActive: '#1a1408',
   bgInactive: '#0e0c09',
   borderInactive: '#2a2318',
@@ -107,7 +107,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <canvas ref={hpCanvasRef} width={80} height={14} />
-        <span style={{ color: COLOR.hp, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Cinzel', serif", letterSpacing: '1px' }}>
+        <span style={{ color: COLOR.hpHighlight, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Cinzel', serif", letterSpacing: '1px', textShadow: '0 0 8px COLOR.hp' }}>
           {me.health} / 3
         </span>
       </div>
