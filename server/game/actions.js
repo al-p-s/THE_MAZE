@@ -67,21 +67,29 @@ function actionMove(gameState, socketId, direction) {
     landedCell.content = null;
     const owner = landedCell.mineOwner;
     landedCell.mineOwner = null;
-    player.health -= 1.5;
-    if (player.hasTreasure) {
-      player.hasTreasure = false;
-      gameState.treasure.carriedBy = null;
-      gameState.treasure.x = player.x;
-      gameState.treasure.y = player.y;
-      gameState.treasure.isBuried = false;
+
+    const victims = gameState.players.filter(p =>
+      p.isAlive && ((p.x === player.x && p.y === player.y) || p.id === socketId)
+    );
+    for (const v of victims) {
+      v.health -= 1.5;
+      if (v.hasTreasure) {
+        v.hasTreasure = false;
+        gameState.treasure.carriedBy = null;
+        gameState.treasure.x = v.x;
+        gameState.treasure.y = v.y;
+        gameState.treasure.isBuried = false;
+      }
+      if (v.health <= 0) v.isAlive = false;
     }
-    const died = player.health <= 0;
+
+    const died = victims.some(v => !v.isAlive);
     if (died) player.isAlive = false;
 
     revealCell(player, player.x, player.y);
     revealWall(player, player.x - dx, player.y - dy, direction);
     revealWall(player, player.x, player.y, OPPOSITE[direction]);
-    return { ok: true, blocked: false, mine: true, mineOwner: owner, died };
+    return { ok: true, blocked: false, mine: true, mineOwner: owner, died, victims: victims.map(v => ({ id: v.id, died: !v.isAlive })) };
   }
 
   revealCell(player, player.x, player.y);
@@ -193,15 +201,15 @@ function actionTreasure(gameState, socketId, action) {
   }
 
   // закопать
-  if (action === 'bury') {
+  if (action === 'drop') {
     if (!player.hasTreasure) return { ok: false, reason: 'no_treasure' };
     player.actionPoints -= 1;
     player.hasTreasure = false;
     t.carriedBy = null;
     t.x = player.x;
     t.y = player.y;
-    t.isBuried = true;
-    return { ok: true, action: 'bury' };
+    t.isBuried = false;
+    return { ok: true, action: 'drop' };
   }
 
   return { ok: false, reason: 'bad_action' };
@@ -273,11 +281,34 @@ function rollDice() {
   return Math.floor(Math.random() * 6) + 1;
 }
 
-function actionAttack(gameState, socketId, direction) {
+function actionAttack(gameState, socketId, direction, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
-  if (!DIRS[direction]) return { ok: false };
   if (player.ammo < 1) return { ok: false, reason: 'no_ammo' };
+
+  // если передан targetId — бьём напрямую
+  if (targetId) {
+    const target = gameState.players.find(p => p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y);
+    if (!target) return { ok: false, reason: 'invalid_target' };
+    player.ammo -= 1;
+    player.actionPoints -= 1;
+    const roll = rollDice();
+    const { damage, debuff, debuffTurns } = weaponResults[player.className](roll);
+    target.health -= damage;
+    if (target.hasTreasure) {
+      target.hasTreasure = false;
+      gameState.treasure.carriedBy = null;
+      gameState.treasure.x = target.x;
+      gameState.treasure.y = target.y;
+      gameState.treasure.isBuried = false;
+    }
+    if (debuff) addDebuff(target, debuff, debuffTurns);
+    const died = target.health <= 0;
+    if (died) target.isAlive = false;
+    return { ok: true, hit: true, roll, damage, debuff, debuffTurns: debuff ? debuffTurns : null, targetId: target.id, died };
+  }
+
+  if (!DIRS[direction]) return { ok: false };
 
   player.actionPoints -= 1;
   player.ammo -= 1;
@@ -323,18 +354,19 @@ function actionAttack(gameState, socketId, direction) {
   return { ok: true, hit: true, roll, damage, debuff, debuffTurns: debuff ? debuffTurns : null, targetId: target.id, died };
 }
 
-function actionMelee(gameState, socketId) {
+function actionMelee(gameState, socketId, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
 
-  const target = gameState.players.find(p =>
-    p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y
-  );
+  const target = targetId
+    ? gameState.players.find(p => p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y)
+    : gameState.players.find(p => p.isAlive && p.id !== socketId && p.x === player.x && p.y === player.y);
+  
   if (!target) return { ok: false, reason: 'no_target' };
 
   player.actionPoints -= 1;
   const roll = rollDice();
-  if (roll <= 3) return { ok: true, hit: false, roll };
+  if (roll <= 3) return { ok: true, hit: false, roll, targetId: target.id };
 
   target.health -= 0.5;
   if (target.hasTreasure) {

@@ -1,30 +1,119 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
-const DIR_LABEL = { top: '↑', right: '→', bottom: '↓', left: '←' };
+const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
 const DIR_GRID = { top: '1/2', right: '2/3', bottom: '3/2', left: '2/1' }; // row/col
 
 const COLOR = {
-  accent: '#c8ff00',
-  dim: '#333',
-  dimText: '#555',
-  bg: '#111',
-  border: '#222',
-  danger: '#ff4444',
-  warn: '#ffaa00',
+  accent: '#c8a84b',
+  dim: '#3a3228',
+  textDim: '#c8c0b0',
+  bg: '#0e0c09',
+  border: '#3a2e1e',
+  danger: '#8b2020',
+  heal: '#4a7a3a',
+  warn: '#8a6020',
+  hint: '#6a5a48',
+  dirBg: '#13110e',
 };
 
-export default function ActionPanel({ me, isMyTurn, act, gameData }) {
+export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
 
+  const disabled = !isMyTurn || !me || me.actionPoints < 1;
+  const actRef = useRef(act);
+  useEffect(() => { actRef.current = act; }, [act]);
+
+  const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
+  const onArsenal = cell?.type === 'arsenal';
+  const onHospital = cell?.type === 'hospital';
+  const onTreasure = gameData?.treasure &&
+    !gameData.treasure.destroyed &&
+    !gameData.treasure.carriedBy &&
+    me?.x === gameData.treasure?.x &&
+    me?.y === gameData.treasure?.y;
+  const hasTreasure = me?.hasTreasure;
+  const hasMedkit = me?.items?.includes('medkit');
+
+  useEffect(() => {
+    const KEY_DIR = {
+      w: 'top', d: 'right', s: 'bottom', a: 'left',
+      ц: 'top', в: 'right', ы: 'bottom', ф: 'left',
+    };
+    const handler = (e) => {
+      const key = e.key.toLowerCase();
+
+      const MODE_KEYS = { '1': 'move', '2': 'attack', '3': 'bomb_wall', '4': 'check' };
+      if (MODE_KEYS[key]) {
+        setMode(MODE_KEYS[key]);
+        return;
+      }
+      if (key === 'g' || key === 'п') {
+        actRef.current('action:end_turn');
+        return;
+      }
+      if (key === 'q' || key === 'й') {
+        if (onArsenal) actRef.current('action:use_arsenal');
+        else if (onHospital) actRef.current('action:use_hospital', { choice: 'heal' });
+        return;
+      }
+      if ((key === 'e' || key === 'у') && onHospital) {
+        actRef.current('action:use_hospital', { choice: 'medkit' });
+        return;
+      }
+      if (key === 'f' || key === 'а') {
+        if (onTreasure && !hasTreasure && !gameData?.treasure?.isBuried)
+          actRef.current('action:treasure', { action: 'pickup' });
+        else if (onTreasure && !hasTreasure && gameData?.treasure?.isBuried)
+          actRef.current('action:treasure', { action: 'dig' });
+        else if (hasTreasure)
+          actRef.current('action:treasure', { action: 'drop' });
+        return;
+      }
+      if (key === 'x' || key === 'ч') {
+        if (hasMedkit) actRef.current('action:use_medkit');
+        return;
+      }
+      if (key === 'tab') {
+        e.preventDefault();
+        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y) ?? [];
+        if (cellmates.length < 2) return;
+        const idx = cellmates.findIndex(p => p.id === targetId);
+        setTargetId(cellmates[(idx + 1) % cellmates.length].id);
+        return;
+      }
+      if (key === 'r' || key === 'к') {
+        if (targetId && !disabled) actRef.current('action:attack', { targetId });
+        return;
+      }
+
+      const dir = KEY_DIR[key];
+      if (!dir || disabled) return;
+      if (mode === 'move') actRef.current('action:move', { direction: dir });
+      else if (mode === 'attack') {
+        if (e.altKey) actRef.current('action:melee', { targetId });
+        else actRef.current('action:attack', { direction: dir });
+      }
+      else if (mode === 'bomb_wall') {
+        if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
+        else actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+      }
+      else if (mode === 'check') {
+        if (e.altKey) actRef.current('action:check_cell', { direction: dir });
+        else actRef.current('action:check_wall', { direction: dir });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
+
   if (!me) return null;
-  const disabled = !isMyTurn || me.actionPoints < 1;
 
   const dirBtn = (dir, action, payload = {}) => (
     <button
       key={dir}
-      style={{ ...styles.dirBtn, gridArea: DIR_GRID[dir], opacity: disabled ? 0.3 : 1 }}
-      disabled={disabled}
+      style={{ ...styles.dirBtn, gridArea: DIR_GRID[dir], opacity: modeDisabled ? 0.3 : 1 }}
+      disabled={modeDisabled}
       onClick={() => act(action, { direction: dir, ...payload })}
     >
       {DIR_LABEL[dir]}
@@ -34,95 +123,82 @@ export default function ActionPanel({ me, isMyTurn, act, gameData }) {
   const modeBtn = (m, label, color) => (
     <button
       key={m}
-      style={{ ...styles.modeBtn, borderColor: mode === m ? (color || COLOR.accent) : COLOR.dim, color: mode === m ? (color || COLOR.accent) : COLOR.dimText }}
+      style={{ ...styles.modeBtn, borderColor: mode === m ? (color || COLOR.accent) : COLOR.dim, color: mode === m ? (color || COLOR.accent) : COLOR.textDim }}
       onClick={() => setMode(m)}
     >
       {label}
     </button>
   );
 
-  // Check if on POI
-  const cell = gameData?.maze?.cells?.[me.y]?.[me.x];
-  const onArsenal = cell?.type === 'arsenal';
-  const onHospital = cell?.type === 'hospital';
-  const onTreasure = gameData?.treasure && me.x === gameData.treasure?.x && me.y === gameData.treasure?.y;
-  const hasTreasure = me.hasTreasure;
-  const hasMedkit = me.items?.includes('medkit');
+  const modeDisabled = disabled
+    || (mode === 'bomb_wall' && me.bombs < 1);
 
   return (
     <div style={styles.root}>
       {/* Mode selector */}
-      <div style={styles.modeRow}>
-        {modeBtn('move', 'MOVE', COLOR.accent)}
-        {modeBtn('attack', 'ATTACK', '#ff4488')}
-        {modeBtn('bomb_wall', 'BOOM', COLOR.warn)}
-        {modeBtn('bomb_mine', 'MINE', COLOR.danger)}
-        {modeBtn('check_wall', 'WALL?', '#aaa')}
-        {modeBtn('check_cell', 'CELL?', '#aaa')}
+      <div style={{ ...styles.modeRow, opacity: isMyTurn ? 1 : 0.5 }}>
+        {modeBtn('move', '[1] MOVE', COLOR.accent)}
+        {modeBtn('bomb_wall', '[3] BOMB', COLOR.accent)}
+        {modeBtn('attack', '[2] ATTACK', COLOR.accent)}
+        {modeBtn('check', '[4] CHECK', COLOR.accent)}
       </div>
 
       {/* Direction pad */}
-      {['move', 'attack', 'bomb_wall', 'check_wall', 'check_cell'].includes(mode) && (
-        <div style={styles.dpad}>
-          {DIRS.map(dir => {
-            if (mode === 'move') return dirBtn(dir, 'action:move');
-            if (mode === 'attack') return dirBtn(dir, 'action:attack');
-            if (mode === 'bomb_wall') return dirBtn(dir, 'action:use_bomb', { mode: 'wall' });
-            if (mode === 'check_wall') return dirBtn(dir, 'action:check_wall');
-            if (mode === 'check_cell') return dirBtn(dir, 'action:check_cell');
-            return null;
-          })}
-          <div style={styles.dpadCenter}>
-            {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+      {['move', 'attack', 'bomb_wall', 'check'].includes(mode) && (
+        <div style={{ position: 'relative', display: 'flex' }}>
+          <div style={styles.dpad}>
+            {DIRS.map(dir => {
+              if (mode === 'move') return dirBtn(dir, 'action:move');
+              if (mode === 'attack') return dirBtn(dir, 'action:attack');
+              if (mode === 'bomb_wall') return dirBtn(dir, 'action:use_bomb', { mode: 'wall' });
+              if (mode === 'check') return dirBtn(dir, 'action:check_wall');
+              return null;
+            })}
+            <div style={styles.dpadCenter}>
+              {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+            </div>
+          </div>
+          <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
+            fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
+            {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
+          </div>
+          <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
+            fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
+            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
       )}
 
-      {/* Mine mode */}
-      {mode === 'bomb_mine' && (
-        <div style={styles.singleAction}>
-          <button
-            style={{ ...styles.bigBtn, opacity: (disabled || me.bombs < 1) ? 0.3 : 1 }}
-            disabled={disabled || me.bombs < 1}
-            onClick={() => act('action:use_bomb', { mode: 'mine' })}
-          >
-            PLANT A MINE
-          </button>
-        </div>
-      )}
-
-      {/* Contextual actions */}
-      <div style={styles.contextRow}>
-        {/* Melee if ranged weapon */}
-        <ActionBtn label="MELEE" disabled={disabled} onClick={() => act('action:melee')} />
-
-        {onArsenal && <ActionBtn label="АРСЕНАЛ" color={COLOR.warn} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
-
-        {onHospital && <>
-          <ActionBtn label="HEAL" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
-          <ActionBtn label="MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
-        </>}
-
-        {hasMedkit && <ActionBtn label="USE MEDKIT" color='#ff4488' disabled={disabled} onClick={() => act('action:use_medkit')} />}
-
-        {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
-          <ActionBtn label="PICK UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
-
-        {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
-          <ActionBtn label="DIG UP A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
-
-        {hasTreasure &&
-          <ActionBtn label="BURY A TREASURE" color="#ffd700" disabled={disabled} onClick={() => act('action:treasure', { action: 'bury' })} />}
-      </div>
-
       {/* End turn */}
       <button
-        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.3 }}
+        style={{ ...styles.endBtn, opacity: isMyTurn ? 1 : 0.5 }}
         disabled={!isMyTurn}
         onClick={() => act('action:end_turn')}
       >
-        END TURN
+        [G] END TURN
       </button>
+
+      {/* Contextual actions */}
+      <div style={styles.contextRow}>
+
+        {onArsenal && <ActionBtn label="[Q] ARSENAL" color={COLOR.accent} disabled={disabled} onClick={() => act('action:use_arsenal')} />}
+
+        {onHospital && <>
+          <ActionBtn label="[Q] HEAL" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'heal' })} />
+          <ActionBtn label="[E] GET MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_hospital', { choice: 'medkit' })} />
+        </>}
+
+        {hasMedkit && <ActionBtn label="[X] USE MEDKIT" color={COLOR.heal} disabled={disabled} onClick={() => act('action:use_medkit')} />}
+
+        {onTreasure && !hasTreasure && !gameData?.treasure?.isBuried &&
+          <ActionBtn label="[F] PICK UP A TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'pickup' })} />}
+
+        {onTreasure && !hasTreasure && gameData?.treasure?.isBuried &&
+          <ActionBtn label="[F] DIG UP A TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'dig' })} />}
+
+        {hasTreasure &&
+          <ActionBtn label="[F] DROP TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
+      </div>
     </div>
   );
 }
@@ -141,23 +217,23 @@ function ActionBtn({ label, onClick, disabled, color }) {
 
 const styles = {
   root: {
-    padding: '10px 12px',
-    borderBottom: `1px solid ${COLOR.border}`,
-    fontFamily: "'Courier New', monospace",
+    padding: '4px 12px',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
   },
   modeRow: {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
     gap: '4px',
-    flexWrap: 'wrap',
   },
   modeBtn: {
+    fontFamily: "'Spectral', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 6px',
-    fontSize: '9px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -169,19 +245,23 @@ const styles = {
     gridTemplateRows: 'repeat(3, 36px)',
     gap: '3px',
     alignSelf: 'center',
+    marginTop: '4px',
+    margin: '0 auto',
   },
   dpadCenter: {
     gridArea: '2/2',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#333',
-    fontSize: '14px',
+    color: COLOR.textDim,
+    fontSize: '18px',
   },
   dirBtn: {
-    background: '#1a1a1a',
+    fontFamily: "'Spectral', serif",
+    background: COLOR.dirBg,
     border: `1px solid ${COLOR.dim}`,
     color: COLOR.accent,
+    fontWeight: 'bold',
     fontSize: '16px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -194,36 +274,30 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
   },
-  bigBtn: {
-    background: '#1a0000',
-    border: `1px solid ${COLOR.danger}`,
-    color: COLOR.danger,
-    padding: '8px 20px',
-    fontSize: '11px',
-    letterSpacing: '2px',
-    cursor: 'pointer',
-    borderRadius: '2px',
-  },
   contextRow: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '4px',
   },
   ctxBtn: {
+    fontFamily: "'Spectral', serif",
     background: 'none',
     border: '1px solid',
     padding: '3px 8px',
-    fontSize: '9px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
   },
   endBtn: {
+    fontFamily: "'Spectral', serif",
     background: 'none',
-    border: `1px solid #333`,
-    color: '#555',
+    border: `1px solid ${COLOR.border}`,
+    color: COLOR.textDim,
     padding: '6px',
-    fontSize: '9px',
+    fontWeight: 'bold',
+    fontSize: '14px',
     letterSpacing: '2px',
     cursor: 'pointer',
     borderRadius: '2px',

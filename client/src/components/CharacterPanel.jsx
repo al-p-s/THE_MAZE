@@ -1,12 +1,25 @@
 import EventLog from './EventLog';
 
+const COLOR = {
+  accent: '#c8a84b',
+  text: '#a89070',
+  textDim: '#c8c0b0',
+  border: '#4a3a22',
+  itemBg: '#13110e',
+  itemBorder: '#1e1a14',
+  panelBg: '#0e0c09',
+  portraitBg: '#111',
+  empty: '#333',
+};
+
 const CLASS_DATA = {
   pinkerton: {
     name: 'Eugene',
     title: 'Pinkerton',
+    portrait: '/portraits/02_pinkerton.png',
     initials: 'EG',
-    color: '#c8ff00',
-    weapon: 'Revolver',
+    color: '#9dfff2',
+    weapon: 'Pistole',
     passives: [
       'WIP',
     ],
@@ -14,8 +27,9 @@ const CLASS_DATA = {
   reaper: {
     name: 'Luther',
     title: 'Reaper',
+    portrait: '/portraits/01_reaper.png',
     initials: 'LT',
-    color: '#aa44ff',
+    color: '#a10000',
     weapon: 'Dagger',
     passives: [
       'WIP',
@@ -24,8 +38,9 @@ const CLASS_DATA = {
   witch: {
     name: 'Vivian',
     title: 'Witch',
+    portrait: '/portraits/03_witch.png',
     initials: 'VV',
-    color: '#ff44cc',
+    color: '#64b33f',
     weapon: 'Magic',
     passives: [
       'WIP',
@@ -34,18 +49,20 @@ const CLASS_DATA = {
   pyromaniac: {
     name: 'Klaus',
     title: 'Pyromaniac',
+    portrait: '/portraits/04_pyromaniac.png',
     initials: 'KL',
-    color: '#ff6600',
+    color: '#ff4800',
     weapon: 'Explosive pistol',
     passives: [
       'WIP'
     ],
   },
   amazon: {
-    name: 'Astraea',
+    name: 'Athena',
     title: 'Amazon',
-    initials: 'AS',
-    color: '#00ccff',
+    portrait: '/portraits/05_amazon.png',
+    initials: 'AT',
+    color: '#ffbb00',
     weapon: 'Grenade-gun',
     passives: [
       'WIP'
@@ -54,8 +71,9 @@ const CLASS_DATA = {
   succubus: {
     name: 'Lilith',
     title: 'Succubus',
+    portrait: '/portraits/06_succubus.png',
     initials: 'LL',
-    color: '#ff2266',
+    color: '#ff0055',
     weapon: 'Dual pistols',
     passives: [
       'WIP'
@@ -64,8 +82,9 @@ const CLASS_DATA = {
   werewolf: {
     name: 'Fenrir',
     title: 'Werewolf',
+    portrait: '/portraits/07_werewolf.png',
     initials: 'FN',
-    color: '#88aaff',
+    color: '#c9abab',
     weapon: 'Claws / Blunderbuss',
     passives: [
       'WIP'
@@ -73,10 +92,11 @@ const CLASS_DATA = {
   },
   trickster: {
     name: 'Charlotte',
-    title: 'Trickster',
+    title: 'Cutie',
+    portrait: '/portraits/08_trickster.png',
     initials: 'CR',
-    color: '#ffcc00',
-    weapon: 'Pistole',
+    color: '#9200d6',
+    weapon: 'Revolver',
     passives: [
       'WIP'
     ],
@@ -92,38 +112,48 @@ export default function CharacterPanel({ me, events }) {
       <div style={styles.portraitSection}>
         {cls ? (
           <>
-            <div style={{ ...styles.portrait, borderColor: cls.color, boxShadow: `0 0 24px ${cls.color}33` }}>
-              <div style={{ ...styles.initials, color: cls.color }}>{cls.initials}</div>
-              <div style={{ ...styles.portraitGlow, background: `radial-gradient(circle at 50% 60%, ${cls.color}22 0%, transparent 70%)` }} />
+            <div style={styles.portraitFrame}>
+              <img
+                src={cls.portrait}
+                alt={cls.name}
+                style={styles.portraitImage}
+              />
             </div>
             <div style={styles.nameBlock}>
-              <div style={{ ...styles.charName, color: cls.color }}>{cls.name}</div>
+              <div style={styles.charName}>{cls.name}</div>
               <div style={styles.charTitle}>«{cls.title}»</div>
+            </div>
+
+            <div style={styles.ornamentDivider}>
+              <div style={styles.ornamentLine} />
+              <span style={styles.ornamentDiamond}> ◇ </span>
+              <div style={styles.ornamentLine} />
             </div>
 
             {/* Weapon */}
             <div style={styles.infoBlock}>
-              <div style={styles.infoLabel}>WEAPON</div>
-              <div style={styles.infoValue}>{cls.weapon}</div>
+              <div style={styles.sectionLabel}>WEAPON</div>
+              <div style={styles.passiveRow}>
+                <span style={styles.passiveTag}>{cls.weapon}</span>
+              </div>
             </div>
 
             {/* Passives */}
             <div style={styles.infoBlock}>
-              <div style={styles.infoLabel}>PASSIVES</div>
-              {cls.passives.map((p, i) => (
-                <div key={i} style={styles.passive}>
-                  <span style={{ color: cls.color, marginRight: '6px' }}>›</span>{p}
-                </div>
-              ))}
+              <div style={styles.sectionLabel}>PASSIVES</div>
+              <div style={styles.passiveRow}>
+                {cls.passives.map((p, i) => (
+                  <span key={i} style={styles.passiveTag}>
+                    {p}
+                  </span>
+                ))}
+              </div>
             </div>
           </>
         ) : (
           <div style={styles.noChar}>—</div>
         )}
       </div>
-
-      {/* Divider */}
-      <div style={styles.divider} />
 
       {/* Event log */}
       <div style={styles.logWrap}>
@@ -139,81 +169,56 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: "'Courier New', monospace",
     overflow: 'hidden',
   },
   portraitSection: {
-    padding: '16px 14px 12px',
+    padding: '12px',
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
     flexShrink: 0,
   },
-  portrait: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    border: '2px solid',
-    alignSelf: 'center',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    background: '#111',
-    overflow: 'hidden',
-  },
-  portraitGlow: {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: '50%',
-  },
-  initials: {
-    fontSize: '26px',
-    fontWeight: 'bold',
-    letterSpacing: '2px',
-    position: 'relative',
-    zIndex: 1,
-  },
   nameBlock: {
     textAlign: 'center',
   },
+  portraitFrame: {
+    width: '100%',
+    aspectRatio: '1 / 1',
+    border: `1px solid ${COLOR.border}`,
+    padding: '6px',
+    background: COLOR.itemBg,
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    position: 'relative',
+    boxShadow: `inset 0 0 0 1px ${COLOR.border}55`,
+  },
+  portraitImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+    filter: 'brightness(1.0) contrast(1.05)',
+  },
   charName: {
-    fontSize: '18px',
+    fontSize: '28px',
     fontWeight: 'bold',
-    letterSpacing: '3px',
+    fontFamily: "'Cinzel', serif",
+    letterSpacing: '6px',
+    color: COLOR.accent,
+    textTransform: 'uppercase',
   },
   charTitle: {
-    fontSize: '10px',
-    color: '#555',
-    letterSpacing: '2px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
+    letterSpacing: '3px',
+    color: COLOR.textDim,
     marginTop: '2px',
   },
   infoBlock: {
     display: 'flex',
     flexDirection: 'column',
     gap: '3px',
-  },
-  infoLabel: {
-    fontSize: '8px',
-    letterSpacing: '2px',
-    color: '#444',
-    marginBottom: '2px',
-  },
-  infoValue: {
-    fontSize: '11px',
-    color: '#aaa',
-    letterSpacing: '1px',
-  },
-  passive: {
-    fontSize: '10px',
-    color: '#777',
-    lineHeight: '1.5',
-  },
-  divider: {
-    height: '1px',
-    background: '#1e1e1e',
-    flexShrink: 0,
-    margin: '0 0',
   },
   logWrap: {
     flex: 1,
@@ -222,9 +227,69 @@ const styles = {
     flexDirection: 'column',
   },
   noChar: {
-    color: '#333',
+    color: COLOR.empty,
     textAlign: 'center',
     fontSize: '20px',
     padding: '20px 0',
+  },
+  sectionLabel: {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    fontFamily: "'Cinzel', serif",
+    letterSpacing: '3px',
+    color: COLOR.textDim,
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+  },
+  sectionDivider: {
+    height: '1px',
+    background: `linear-gradient(to right, transparent, ${COLOR.border}, transparent)`,
+    margin: '4px 0 8px',
+  },
+  invItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '4px 8px',
+    background: COLOR.itemBg,
+    border: `1px solid ${COLOR.itemBorder}`,
+  },
+  invText: {
+    color: COLOR.text,
+    fontSize: '14px',
+    fontWeight: 'bold',
+  },
+  passiveRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+  },
+  passiveTag: {
+    fontSize: '12px',
+    fontWeight: 'bold',
+    padding: '2px 5px',
+    color: COLOR.text,
+    letterSpacing: '1px',
+    background: COLOR.itemBg,
+    border: `1px solid ${COLOR.itemBorder}`,
+  },
+  ornamentDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '6px 0 10px',
+  },
+  ornamentLine: {
+    flex: 1,
+    height: '1px',
+    background: `linear-gradient(
+      to right,
+      transparent,
+      ${COLOR.border},
+      transparent
+    )`,
+  },
+  ornamentDiamond: {
+    margin: '0 8px',
+    color: COLOR.text,
+    fontSize: '11px',
   },
 };

@@ -4,13 +4,36 @@
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0a0a0a;
+  background: #0e0c09;
 }
 
-html {
-  touch-action: none;
+body {
+  font-family: 'Spectral', serif;
+}
+
+.event-log-list {
+  scrollbar-width: thin;
+  scrollbar-color: #4a3a22 #0f0d09;
+}
+
+.event-log-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.event-log-list::-webkit-scrollbar-track {
+  background: #0f0d09;
+}
+
+.event-log-list::-webkit-scrollbar-thumb {
+  background: #4a3a22;
+}
+
+.event-log-list::-webkit-scrollbar-thumb:hover {
+  background: #5a4729;
 }

@@ -5,6 +5,37 @@ const {
   createGameState, nextTurn,
   getPlayerView,
 } = require('./game/state');
+
+const fs = require('fs');
+const path = require('path');
+
+function logGlobal(ev, gameState) {
+  const getName = (id) => {
+    const p = gameState?.players.find(p => p.id === id);
+    return p ? `[P${p.index}]` : `[${id?.slice(0,4) ?? '?'}]`;
+  };
+  const DIR = { top: '↑', right: '→', bottom: '↓', left: '←' };
+  const time = new Date().toISOString().slice(11,19);
+  let line = null;
+
+  switch (ev.event) {
+    case 'moved': line = `${getName(ev.playerId)} moved ${DIR[ev.direction] ?? ''}`; break;
+    case 'move_blocked': line = `${getName(ev.playerId)} hit wall ${DIR[ev.direction] ?? ''}`; break;
+    case 'attack': line = `${getName(ev.playerId)} → ${getName(ev.targetId)}: ${ev.hit ? `${ev.damage} dmg${ev.debuff ? ` [${ev.debuff}]` : ''}${ev.died ? ' KILLED' : ''}` : 'miss'}`; break;
+    case 'melee': line = `${getName(ev.playerId)} melee → ${getName(ev.targetId)}: ${ev.hit ? `${ev.damage} dmg${ev.died ? ' KILLED' : ''}` : 'miss'}`; break;
+    case 'mine_triggered': line = `${getName(ev.playerId)} hit mine (owner: ${getName(ev.mineOwner)})${ev.died ? ' KILLED' : ''}`; break;
+    case 'bomb_used': line = `${getName(ev.playerId)} bomb: ${ev.mode === 'wall' ? `wall blown ${DIR[ev.direction] ?? ''}` : 'mine planted'}`; break;
+    case 'arsenal_used': line = `${getName(ev.playerId)} arsenal: ${ev.reward}`; break;
+    case 'hospital_used': line = `${getName(ev.playerId)} hospital: ${ev.choice}`; break;
+    case 'treasure': line = `${getName(ev.playerId)} treasure: ${ev.action}`; break;
+    case 'exit_found': line = `${getName(ev.playerId)} found exit`; break;
+    case 'player_disconnected': line = `${getName(ev.playerId)} disconnected`; break;
+    default: line = `${getName(ev.playerId)} ${ev.event}`;
+  }
+
+  if (line) fs.appendFileSync(path.join(__dirname, 'game.log'), `[${time}] ${line}\n`);
+}
+
 const {
   actionMove, actionCheckWall,
   actionAttack, actionUseHospital,
@@ -26,6 +57,11 @@ const io = new Server(server, {
 
 const lobby = [];
 let gameState = null;
+
+function emitEvent(ev) {
+  io.emit('game:event', ev);
+  logGlobal(ev, gameState);
+}
 
 function broadcastViews() {
   for (const p of gameState.players)
@@ -49,7 +85,7 @@ io.on('connection', (socket) => {
   lobby.push(socket.id);
 
   // Для теста — стартуем когда 2 игрока
-  if (lobby.length === 2) {
+  if (lobby.length === 3) {
     gameState = createGameState(lobby, lobby.length);
     console.log('Game started!');
     broadcastViews();
@@ -62,7 +98,7 @@ io.on('connection', (socket) => {
     const result = actionMove(gameState, socket.id, direction);
     if (!result.ok) return;
     if (result.mine) {
-      io.emit('game:event', { event: 'mine_triggered', playerId: socket.id, mineOwner: result.mineOwner, died: result.died });
+      emitEvent({ event: 'mine_triggered', playerId: socket.id, mineOwner: result.mineOwner, died: result.died, victims: result.victims });
       if (result.died) {
         const alive = gameState.players.filter(p => p.isAlive);
         if (alive.length === 1) {
@@ -81,7 +117,7 @@ io.on('connection', (socket) => {
     if (result.exitFound) {
       socket.emit('game:event', { event: 'exit_found', playerId: socket.id, direction });
     } else if (!result.alreadyKnown) {
-      io.emit('game:event', { event: result.blocked ? 'move_blocked' : 'moved', playerId: socket.id, direction, isEdge: result.isEdge ?? false });
+      emitEvent({ event: result.blocked ? 'move_blocked' : 'moved', playerId: socket.id, direction, isEdge: result.isEdge ?? false });
     }
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
@@ -114,7 +150,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionUseMedkit(gameState, socket.id);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'medkit_used', playerId: socket.id });
+    emitEvent({ event: 'medkit_used', playerId: socket.id });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -124,7 +160,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionUseHospital(gameState, socket.id, choice);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'hospital_used', playerId: socket.id, choice: result.choice });
+    emitEvent({ event: 'hospital_used', playerId: socket.id, choice: result.choice });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -134,7 +170,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionUseArsenal(gameState, socket.id);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'arsenal_used', playerId: socket.id, reward: result.reward });
+    emitEvent({ event: 'arsenal_used', playerId: socket.id, reward: result.reward });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -144,7 +180,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionTreasure(gameState, socket.id, action);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'treasure', playerId: socket.id, action: result.action });
+    emitEvent({ event: 'treasure', playerId: socket.id, action: result.action });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -154,7 +190,7 @@ io.on('connection', (socket) => {
     if (!isCurrentPlayer(socket.id)) return;
     const result = actionUseBomb(gameState, socket.id, mode, direction);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'bomb_used', playerId: socket.id, mode: result.mode, direction: result.direction ?? null });
+    emitEvent({ event: 'bomb_used', playerId: socket.id, mode: result.mode, direction: result.direction ?? null });
     const p = gameState.players.find(p => p.id === socket.id);
     if (p.actionPoints <= 0) advanceTurn();
     else broadcastViews();
@@ -165,12 +201,12 @@ io.on('connection', (socket) => {
     advanceTurn();
   });
 
-  socket.on('action:attack', ({ direction } = {}) => {
+  socket.on('action:attack', ({ direction, targetId } = {}) => {
     if (!isCurrentPlayer(socket.id)) return;
-    const result = actionAttack(gameState, socket.id, direction);
+    const result = actionAttack(gameState, socket.id, direction, targetId);
     if (!result.ok) return;
 
-    io.emit('game:event', {
+    emitEvent({
       event: 'attack',
       playerId: socket.id,
       direction,
@@ -197,11 +233,11 @@ io.on('connection', (socket) => {
     else broadcastViews();
   });
 
-  socket.on('action:melee', () => {
+  socket.on('action:melee', ({ targetId } = {}) => {
     if (!isCurrentPlayer(socket.id)) return;
-    const result = actionMelee(gameState, socket.id);
+    const result = actionMelee(gameState, socket.id, targetId);
     if (!result.ok) return;
-    io.emit('game:event', { event: 'melee', playerId: socket.id, hit: result.hit, roll: result.roll,
+    emitEvent({ event: 'melee', playerId: socket.id, hit: result.hit, roll: result.roll,
       damage: result.damage ?? 0, targetId: result.targetId ?? null, died: result.died ?? false });
     if (result.died) {
       const alive = gameState.players.filter(p => p.isAlive);
@@ -223,7 +259,7 @@ io.on('connection', (socket) => {
       const player = gameState.players.find(p => p.id === socket.id);
       if (player) {
         player.isAlive = false;
-        io.emit('game:event', { event: 'player_disconnected', playerId: socket.id });
+        emitEvent({ event: 'player_disconnected', playerId: socket.id });
         const alive = gameState.players.filter(p => p.isAlive);
         if (alive.length === 1) {
           gameState.status = 'finished';

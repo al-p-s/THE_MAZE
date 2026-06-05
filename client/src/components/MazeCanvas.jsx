@@ -18,7 +18,7 @@ const COLOR = {
   grid: '#1e1e1e',
 };
 
-export default function MazeCanvas({ gameData }) {
+export default function MazeCanvas({ gameData, targetId }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -33,8 +33,8 @@ export default function MazeCanvas({ gameData }) {
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL);
-  }, [gameData]);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId);
+  }, [gameData, targetId]);
 
   if (!gameData) return null;
 
@@ -45,7 +45,7 @@ export default function MazeCanvas({ gameData }) {
   );
 }
 
-function draw(ctx, gameData, W, H, CELL) {
+function draw(ctx, gameData, W, H, CELL, targetId) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -62,7 +62,7 @@ function draw(ctx, gameData, W, H, CELL) {
       drawCellWalls(ctx, cell, CELL);
 
   // Draw player
-  if (you) drawPlayer(ctx, you, CELL, visiblePlayers);
+  if (you) drawPlayer(ctx, you, CELL, visiblePlayers, targetId);
 }
 
 function drawExit(ctx, px, py, CELL, direction) {
@@ -193,7 +193,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
   }
 }
 
-function drawPlayer(ctx, you, CELL, visiblePlayers = []) {
+function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
   // группируем visiblePlayers по клеткам
   const byCell = {};
   for (const p of visiblePlayers) {
@@ -209,7 +209,7 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = []) {
   const myPositions = getPositions(you.x, you.y, CELL, myTotal);
   drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true);
   myCellmates.forEach((p, i) => {
-    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false);
+    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, p.id === targetId);
   });
 
   // рисуем остальных visible (не в моей клетке)
@@ -217,12 +217,12 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = []) {
     if (key === myKey) continue;
     const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
     players.forEach((p, i) => {
-      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false);
+      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false, p.id === targetId);
     });
   }
 }
 
-function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure) {
+function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, isTarget = false) {
   const { cx, cy } = pos;
   const r = CELL * 0.15;
 
@@ -233,16 +233,17 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure) {
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 3;
   ctx.stroke();
-
-  if (showTreasure && player.hasTreasure) {
-    ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${r * 1.3}px "Courier New"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('◆', cx, cy - r - r * 0.5);
+  if (isTarget) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ff2200';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  if (!showTreasure && player.hasTreasure) {
+  if (player.hasTreasure) {
     ctx.fillStyle = COLOR.treasure;
     ctx.font = `bold ${r * 1.3}px "Courier New"`;
     ctx.textAlign = 'center';

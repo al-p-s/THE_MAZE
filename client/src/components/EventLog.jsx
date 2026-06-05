@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react';
 
+const COLOR = {
+  text: '#a89070',
+  textDim: '#c8c0b0',
+  border: '#4a3a22',
+  empty: '#333',
+  index: '#333',
+};
+
 export default function EventLog({ events }) {
   const bottomRef = useRef(null);
 
@@ -9,8 +17,14 @@ export default function EventLog({ events }) {
 
   return (
     <div style={styles.root}>
-      <div style={styles.header}>LOG</div>
-      <div style={styles.list}>
+      <div style={styles.logDivider}>
+        <div style={styles.logLine} />
+        <span style={styles.logDiamond}> ◇ </span>
+        <span style={styles.logTitle}>LOG</span>
+        <span style={styles.logDiamond}> ◇ </span>
+        <div style={styles.logLine} />
+      </div>
+      <div style={styles.list} className="event-log-list">
         {events.length === 0
           ? <div style={styles.empty}>— no events —</div>
           : events.map((msg, i) => (
@@ -34,13 +48,6 @@ const styles = {
     overflow: 'hidden',
     fontFamily: "'Courier New', monospace",
   },
-  header: {
-    fontSize: '9px',
-    letterSpacing: '3px',
-    color: '#444',
-    padding: '8px 12px 4px',
-    borderBottom: '1px solid #1a1a1a',
-  },
   list: {
     flex: 1,
     overflowY: 'auto',
@@ -50,8 +57,9 @@ const styles = {
     gap: '3px',
   },
   empty: {
-    color: '#333',
-    fontSize: '10px',
+    fontFamily: "'Spectral', serif",
+    fontSize: '13px',
+    color: COLOR.textDim,
     textAlign: 'center',
     marginTop: '20px',
     letterSpacing: '1px',
@@ -59,17 +67,47 @@ const styles = {
   entry: {
     display: 'flex',
     gap: '8px',
-    fontSize: '10px',
+    fontSize: '13px',
     lineHeight: '1.4',
   },
   index: {
-    color: '#333',
+    color: COLOR.index,
     minWidth: '16px',
     textAlign: 'right',
     flexShrink: 0,
   },
   msg: {
-    color: '#888',
+    fontFamily: "'Spectral', serif",
+    fontWeight: 'bold',
+    color: COLOR.textDim,
     wordBreak: 'break-word',
+  },
+  logDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 12px 8px',
+  },
+  logLine: {
+    flex: 1,
+    height: '1px',
+    background: `linear-gradient(
+      to right,
+      transparent,
+      ${COLOR.border},
+      transparent
+    )`,
+  },
+  logTitle: {
+    margin: '0 8px',
+    fontFamily: "'Cinzel', serif",
+    fontSize: '14px',
+    fontWeight: 'bold',
+    letterSpacing: '4px',
+    color: COLOR.accent,
+  },
+  logDiamond: {
+    margin: '0 4px',
+    color: COLOR.accent,
+    fontSize: '11px',
   },
 };
