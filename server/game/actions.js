@@ -67,6 +67,11 @@ function actionMove(gameState, socketId, direction) {
     landedCell.content = null;
     const owner = landedCell.mineOwner;
     landedCell.mineOwner = null;
+    
+    for (const p of gameState.players) {
+      const k = `${player.x},${player.y}`;
+      if (p.visibleCells[k]) p.visibleCells[k].knownMine = false;
+    }
 
     const victims = gameState.players.filter(p =>
       p.isAlive && ((p.x === player.x && p.y === player.y) || p.id === socketId)
@@ -262,6 +267,14 @@ function actionCheckCell(gameState, socketId, direction) {
   player.actionPoints -= 1;
   const cell = getCell(gameState.maze, nx, ny);
   if (!cell) return { ok: true, content: null };
+
+  if (cell.content === 'mine') {
+    const key = `${nx},${ny}`;
+    if (!player.visibleCells[key]) {
+      player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    }
+    player.visibleCells[key].knownMine = true;
+  }
 
   return { ok: true, content: cell.content };
 }

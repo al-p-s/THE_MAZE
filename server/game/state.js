@@ -234,7 +234,11 @@ function getPlayerView(gameState, socketId) {
 
       // тип и контент — реальные если в зоне, lastSeen если нет
       const type = inZone ? cell.type : (cv.lastSeenType ?? 'empty');
-      const content = inZone ? cell.content : (cv.lastSeenContent ?? null);
+      const realCell = gameState.maze.cells[cell.y][cell.x];
+      const knownMine = (cv?.knownMine || realCell.mineOwner === socketId) && !inZone;
+      const content = inZone
+        ? (realCell.content === 'mine' && realCell.mineOwner !== socketId && !cv?.knownMine ? null : realCell.content)
+        : (knownMine ? 'mine' : (cv.lastSeenContent ?? null));
       const treasureHere = inZone
         ? (gameState.treasure && !gameState.treasure.destroyed &&
           gameState.treasure.x === cell.x && gameState.treasure.y === cell.y &&
@@ -252,6 +256,7 @@ function getPlayerView(gameState, socketId) {
         type,
         content,
         treasure: treasureHere,
+        mineOwner: realCell.content === 'mine' ? realCell.mineOwner : null,
       };
     })
   );

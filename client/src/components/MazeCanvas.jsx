@@ -18,7 +18,7 @@ const COLOR = {
   grid: '#1e1e1e',
 };
 
-export default function MazeCanvas({ gameData, targetId }) {
+export default function MazeCanvas({ gameData, myId, targetId }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -33,8 +33,8 @@ export default function MazeCanvas({ gameData, targetId }) {
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId);
-  }, [gameData, targetId]);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId);
+  }, [gameData, targetId, myId]);
 
   if (!gameData) return null;
 
@@ -45,7 +45,7 @@ export default function MazeCanvas({ gameData, targetId }) {
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -55,7 +55,7 @@ function draw(ctx, gameData, W, H, CELL, targetId) {
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit);
+      drawCellFloor(ctx, cell, CELL, exit, myId);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -86,7 +86,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit) {
+function drawCellFloor(ctx, cell, CELL, exit, myId) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -101,6 +101,10 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   // Floor
   ctx.fillStyle = cell.inZone ? COLOR.floorVisible : COLOR.floor;
   ctx.fillRect(px, py, CELL, CELL);
+  // тонкая сетка
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(px, py, CELL, CELL);
 
   if (exit && exit.x === x && exit.y === y) {
     drawExit(ctx, px, py, CELL, exit.direction);
@@ -110,7 +114,25 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   if (type === 'exit') drawTile(ctx, px, py, COLOR.exit, '⬆', 'ВЫХОД', CELL);
   if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL, cell.inZone);
   if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL, cell.inZone);
-  if (content === 'mine' && cell.inZone) drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
+  if (content === 'mine') {
+    const isOwner = cell.mineOwner === myId;
+    ctx.globalAlpha = cell.inZone ? 1 : 0.4;
+    ctx.fillStyle = COLOR.mine + '33';
+    ctx.beginPath();
+    ctx.arc(px + CELL - CELL * 0.18, py + CELL - CELL * 0.18, CELL * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = COLOR.mine;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    if (isOwner) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${CELL * 0.1}px "Courier New"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('UR', px + CELL - CELL * 0.18, py + CELL - CELL * 0.18);
+    }
+    ctx.globalAlpha = 1;
+  }
   if (cell.treasure) {
     drawTreasure(ctx, px, py, CELL, cell.treasure.isBuried, cell.inZone);
   }
