@@ -8,7 +8,8 @@ function generateMaze(width, height) {
       walls: { top: true, right: true, bottom: true, left: true },
       visited: false,
       type: 'empty', // empty | arsenal | hospital | exit
-      content: null  // treasure | mine | trap | corpse | null
+      content: null, // treasure | mine | trap | corpse | null
+      tileIndex: Math.floor(Math.random() * 9),
     }))
   );
 

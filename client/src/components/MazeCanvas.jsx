@@ -16,7 +16,21 @@ const COLOR = {
   treasure: '#ffd700',
   mine: '#ff2200',
   grid: '#1e1e1e',
+  wallDash: '#3a3a3a44',
+  gridLine: '#000',
+  deadPlayer: '#555',
+  deadStroke: '#333',
+  hpEmpty: '#1a0a0a',
+  hpMe: '#5da844',
+  hpEnemy: '#8b2020',
+  mineFill: '#ff220033',
+  mineLabel: '#ffffffd0',
+  fogOverlay: 'rgba(0,0,0,0.45)',
+  canvasBorder: '#222',
+  enemyPlayer: '#ff6666',
 };
+
+const FLOOR_TILES = Array.from({length: 9}, (_, i) => `/tiles/floor/0${i+1}_tile.png`);
 
 const SPRITES = {
   pinkerton: {
@@ -24,7 +38,7 @@ const SPRITES = {
     bottom: '/sprites/pinkerton/02_front.png',
     left: '/sprites/pinkerton/02_left.png',
     right: '/sprites/pinkerton/02_right.png',
-    top_left: '/sprites/pinkerton/02_left_back.png',
+    top_left: '/sprites/pinkerton/02_back_left.png',
     top_right: '/sprites/pinkerton/02_back_right.png',
     bottom_left: '/sprites/pinkerton/02_front_left.png',
     bottom_right: '/sprites/pinkerton/02_front_right.png',
@@ -35,6 +49,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const spritesRef = useRef({});
+  const floorTilesRef = useRef([]);
   const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
@@ -47,6 +62,12 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
         spritesRef.current[cls][dir] = img;
       }
     }
+    floorTilesRef.current = FLOOR_TILES.map(src => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => setForceUpdate(n => n + 1);
+      return img;
+    });
   }, []);
 
   useEffect(() => {
@@ -87,7 +108,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir, floorTilesRef.current);
   }, [gameData, targetId, myId, forceUpdate, mouseDir]);
 
   if (!gameData) return null;
@@ -99,7 +120,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -109,7 +130,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir) {
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit, myId);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -140,7 +161,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit, myId) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -153,10 +174,19 @@ function drawCellFloor(ctx, cell, CELL, exit, myId) {
   }
 
   // Floor
-  ctx.fillStyle = cell.inZone ? COLOR.floorVisible : COLOR.floor;
-  ctx.fillRect(px, py, CELL, CELL);
+  const tileImg = floorTiles?.[cell.tileIndex ?? 0];
+  if (tileImg?.complete && tileImg.naturalWidth > 0) {
+    ctx.drawImage(tileImg, px, py, CELL, CELL);
+    if (!cell.inZone) {
+      ctx.fillStyle = COLOR.fogOverlay;
+      ctx.fillRect(px, py, CELL, CELL);
+    }
+  } else {
+    ctx.fillStyle = COLOR.floor;
+    ctx.fillRect(px, py, CELL, CELL);
+  }
   // тонкая сетка
-  ctx.strokeStyle = '#000';
+  ctx.strokeStyle = COLOR.gridLine;
   ctx.lineWidth = 0.5;
   ctx.strokeRect(px, py, CELL, CELL);
 
@@ -170,7 +200,7 @@ function drawCellFloor(ctx, cell, CELL, exit, myId) {
   if (content === 'mine') {
     const isOwner = cell.mineOwner === myId;
     ctx.globalAlpha = cell.inZone ? 1 : 0.4;
-    ctx.fillStyle = COLOR.mine + '33';
+    ctx.fillStyle = COLOR.mineFill;
     ctx.beginPath();
     ctx.arc(px + CELL - CELL * 0.18, py + CELL - CELL * 0.18, CELL * 0.12, 0, Math.PI * 2);
     ctx.fill();
@@ -178,7 +208,7 @@ function drawCellFloor(ctx, cell, CELL, exit, myId) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     if (isOwner) {
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = COLOR.mineLabel;
       ctx.font = `bold ${CELL * 0.1}px "Courier New"`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -228,7 +258,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
   } else if (cell.walls.top === null) {
     // checked but unknown — subtle dotted
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
     ctx.setLineDash([]);
@@ -239,7 +269,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
   } else if (cell.walls.right === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
@@ -250,7 +280,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
   } else if (cell.walls.bottom === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
@@ -261,7 +291,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
   } else if (cell.walls.left === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
@@ -285,7 +315,7 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   const youWithDir = { ...you, direction: mouseDir };
   drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, myPositions[0], true, sprites, false, true);
   myCellmates.forEach((p, i) => {
-    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, sprites, p.id === targetId, false);
+    drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, myPositions[i + 1], false, sprites, p.id === targetId, false);
   });
 
   // рисуем остальных visible (не в моей клетке)
@@ -293,7 +323,7 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
     if (key === myKey) continue;
     const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
     players.forEach((p, i) => {
-      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false, sprites, p.id === targetId, false);
+      drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, positions[i], false, sprites, p.id === targetId, false);
     });
   }
 }
@@ -307,21 +337,23 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
   if (!isDead && img?.complete && img.naturalWidth > 0) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, cx - r * 1.5, cy - r * 2, r * 3, r * 4);
+    ctx.filter = 'saturate(0.6)';
+    ctx.drawImage(img, cx - r * 1.0, cy - r * 1.4, r * 2.0, r * 2.8);
+    ctx.filter = 'none';
   } else {
     ctx.globalAlpha = isDead ? 0.5 : 1;
-    ctx.fillStyle = isDead ? '#555' : color;
+    ctx.fillStyle = isDead ? COLOR.deadPlayer : color;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = isDead ? '#333' : '#000';
+    ctx.strokeStyle = isDead ? COLOR.deadStroke : COLOR.gridLine;
     ctx.lineWidth = isDead ? 1 : 3;
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
   if (isDead) {
-    ctx.strokeStyle = '#888';
+    ctx.strokeStyle = COLOR.deadPlayer;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx - r * 0.6, cy - r * 0.6);
@@ -330,7 +362,7 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
     ctx.stroke();
     if (player.looted) {
-      ctx.fillStyle = '#555';
+      ctx.fillStyle = COLOR.deadPlayer;
       ctx.font = `${r * 0.9}px "Courier New"`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -342,7 +374,7 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
   if (isTarget) {
     ctx.beginPath();
     ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff2200';
+    ctx.strokeStyle = COLOR.hpEnemy;
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.stroke();
@@ -350,11 +382,16 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
   }
 
   if (player.hasTreasure) {
+    const barW = r * 1.5;
+    const barY = cy - r * 1.2;
     ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${r * 1.3}px "Courier New"`;
+    ctx.font = `bold ${r * 0.6}px "Spectral"`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('◆', cx, cy - r - r * 0.5);
+    ctx.shadowColor = COLOR.treasure;
+    ctx.shadowBlur = 8;
+    ctx.fillText('◆', cx - barW / 2 - r * 0.2, barY + r * 0.2);
+    ctx.shadowBlur = 0;
   }
 
   drawHealthBar(ctx, cx, cy, r, player.health, isMe);
@@ -378,15 +415,15 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
 
     // заполнение
     if (hp >= 1) {
-      ctx.fillStyle = isMe ? '#33cc33' : '#cc3333';
+      ctx.fillStyle = isMe ? COLOR.hpMe : COLOR.hpEnemy;
       ctx.fillRect(sx + 1, y, segW - 2, barH);
     } else if (hp === 0.5) {
-      ctx.fillStyle = isMe ? '#33cc33' : '#cc3333';
+      ctx.fillStyle = isMe ? COLOR.hpMe : COLOR.hpEnemy;
       ctx.fillRect(sx + 1, y, (segW - 2) / 2, barH);
     }
 
     // граница сегмента
-    ctx.strokeStyle = '#000';
+    ctx.strokeStyle = COLOR.gridLine;
     ctx.lineWidth = 1;
     ctx.strokeRect(sx, y, segW, barH);
   }
@@ -450,7 +487,7 @@ function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
 const styles = {
   canvas: {
     display: 'block',
-    border: '1px solid #222',
+    border: `1px solid ${COLOR.canvasBorder}`,
     imageRendering: 'pixelated',
     maxWidth: '100%',
     maxHeight: '100%',

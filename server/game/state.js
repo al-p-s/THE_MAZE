@@ -258,6 +258,7 @@ function getPlayerView(gameState, socketId) {
         content,
         treasure: treasureHere,
         mineOwner: realCell.content === 'mine' ? realCell.mineOwner : null,
+        tileIndex: cell.tileIndex,
       };
     })
   );

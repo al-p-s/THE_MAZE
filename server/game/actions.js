@@ -196,7 +196,6 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'dig') {
     if (!onTreasureCell || !t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_dig' };
     player.actionPoints -= 1;
-    if (direction) player.direction = direction;
     t.isBuried = false;
     return { ok: true, action: 'dig' };
   }
@@ -205,7 +204,6 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'pickup') {
     if (!onTreasureCell || t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_pickup' };
     player.actionPoints -= 1;
-    if (direction) player.direction = direction;
     t.carriedBy = socketId;
     player.hasTreasure = true;
     return { ok: true, action: 'pickup' };
@@ -215,7 +213,6 @@ function actionTreasure(gameState, socketId, action) {
   if (action === 'drop') {
     if (!player.hasTreasure) return { ok: false, reason: 'no_treasure' };
     player.actionPoints -= 1;
-    if (direction) player.direction = direction;
     player.hasTreasure = false;
     t.carriedBy = null;
     t.x = player.x;

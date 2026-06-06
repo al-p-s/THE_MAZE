@@ -27,11 +27,11 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
     const canvas = hpCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 72, 14);
+    ctx.clearRect(0, 0, 100, 20);
     for (let i = 0; i < 3; i++) {
       const hp = Math.max(0, Math.min(1, me.health - i));
-      const cx = 8 + i * 24;
-      const cy = 7;
+      const cx = 10 + i * 24;
+      const cy = 10;
       ctx.beginPath();
       ctx.arc(cx, cy, 6, 0, Math.PI * 2);
       ctx.fillStyle = COLOR.hpEmpty;
@@ -43,7 +43,10 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         ctx.beginPath();
         ctx.arc(cx, cy, 6, 0, Math.PI * 2);
         ctx.fillStyle = COLOR.hp;
+        ctx.shadowColor = '#2d6e2d';
+        ctx.shadowBlur = 6;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = COLOR.hpHighlight;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -52,7 +55,10 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         ctx.arc(cx, cy, 6, Math.PI * 0.5, Math.PI * 1.5);
         ctx.closePath();
         ctx.fillStyle = COLOR.hp;
+        ctx.shadowColor = '#2d6e2d';
+        ctx.shadowBlur = 6;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = COLOR.hpHighlight;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -106,7 +112,7 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       {/* Health */}
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <canvas ref={hpCanvasRef} width={80} height={14} />
+        <canvas ref={hpCanvasRef} width={100} height={20} />
         <span style={{ color: COLOR.hpHighlight, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Cinzel', serif", letterSpacing: '1px', textShadow: '0 0 8px COLOR.hp' }}>
           {me.health} / 3
         </span>
