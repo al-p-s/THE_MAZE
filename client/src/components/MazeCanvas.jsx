@@ -32,6 +32,9 @@ const COLOR = {
 
 const FLOOR_TILES = Array.from({length: 9}, (_, i) => `/tiles/floor/0${i+1}_tile.png`);
 const HOSPITAL_TILE_SRC = '/tiles/hospital.png';
+const HOSPITAL_USED_TILE_SRC = '/tiles/hospital_used.png';
+const ARSENAL_TILE_SRC = '/tiles/arsenal.png';
+const ARSENAL_USED_TILE_SRC = '/tiles/arsenal_used.png';
 
 const SPRITES = {
   pinkerton: {
@@ -52,6 +55,9 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const spritesRef = useRef({});
   const floorTilesRef = useRef([]);
   const hospitalTileRef = useRef(null);
+  const hospitalUsedTileRef = useRef(null);
+  const arsenalTileRef = useRef(null);
+  const arsenalUsedTileRef = useRef(null);
   const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
@@ -70,10 +76,26 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       img.onload = () => setForceUpdate(n => n + 1);
       return img;
     });
+
     const hImg = new Image();
     hImg.src = HOSPITAL_TILE_SRC;
     hImg.onload = () => setForceUpdate(n => n + 1);
     hospitalTileRef.current = hImg;
+
+    const huImg = new Image();
+    huImg.src = HOSPITAL_USED_TILE_SRC;
+    huImg.onload = () => setForceUpdate(n => n + 1);
+    hospitalUsedTileRef.current = huImg;
+
+    const aImg = new Image();
+    aImg.src = ARSENAL_TILE_SRC;
+    aImg.onload = () => setForceUpdate(n => n + 1);
+    arsenalTileRef.current = aImg;
+
+    const auImg = new Image();
+    auImg.src = ARSENAL_USED_TILE_SRC;
+    auImg.onload = () => setForceUpdate(n => n + 1);
+    arsenalUsedTileRef.current = auImg;
   }, []);
 
   useEffect(() => {
@@ -114,7 +136,8 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir, floorTilesRef.current, hospitalTileRef.current);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
+      floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current, arsenalTileRef.current, arsenalUsedTileRef.current);
   }, [gameData, targetId, myId, forceUpdate, mouseDir]);
 
   if (!gameData) return null;
@@ -126,7 +149,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -136,7 +159,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -167,7 +190,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -200,12 +223,22 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile) {
     drawExit(ctx, px, py, CELL, exit.direction);
   }
 
-  // POI / content tint
-  if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
-  if (type === 'hospital') {
-    if (hospitalTile?.complete && hospitalTile.naturalWidth > 0) {
+  // POIs
+  if (type === 'arsenal') {
+    const tile = cell.used ? arsenalUsedTile : arsenalTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
       ctx.globalAlpha = cell.inZone ? 1 : 0.5;
-      ctx.drawImage(hospitalTile, px, py, CELL, CELL);
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      ctx.globalAlpha = 1;
+    } else {
+      drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
+    }
+  }
+  if (type === 'hospital') {
+    const tile = cell.used ? hospitalUsedTile : hospitalTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.globalAlpha = cell.inZone ? 1 : 0.5;
+      ctx.drawImage(tile, px, py, CELL, CELL);
       ctx.globalAlpha = 1;
     } else {
       drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
@@ -324,18 +357,34 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   // рисуем себя
   const myKey = `${you.x},${you.y}`;
   const myCellmates = byCell[myKey] || [];
-  const myTotal = myCellmates.length + 1;
-  const myPositions = getPositions(you.x, you.y, CELL, myTotal);
+  const baseCx = you.x * CELL + CELL / 2;
+  const baseCy = you.y * CELL + CELL * 0.55;
   const youWithDir = { ...you, direction: mouseDir };
-  drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, myPositions[0], true, sprites, false, true);
+  drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, { cx: baseCx, cy: baseCy }, true, sprites, false, true);
+
+  const baseCyGroup = you.y * CELL + CELL * 0.45;
+  const radius = CELL * 0.5;
   myCellmates.forEach((p, i) => {
-    drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, myPositions[i + 1], false, sprites, p.id === targetId, false);
+    const angle = (2 * Math.PI * i) / myCellmates.length - Math.PI / 2;
+    const pos = {
+      cx: baseCx + radius * Math.cos(angle),
+      cy: baseCyGroup + radius * Math.sin(angle),
+    };
+    drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, pos, false, sprites, p.id === targetId, false);
   });
 
   // рисуем остальных visible (не в моей клетке)
   for (const [key, players] of Object.entries(byCell)) {
     if (key === myKey) continue;
-    const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
+    const eCx = players[0].x * CELL + CELL / 2;
+    const eCy = players[0].y * CELL + CELL * 0.55;
+    const radius = CELL * 0.3;
+    const positions = players.length === 1
+      ? [{ cx: eCx, cy: eCy }]
+      : players.map((_, i) => {
+          const angle = (2 * Math.PI * i) / players.length - Math.PI / 2;
+          return { cx: eCx + radius * Math.cos(angle), cy: eCy + radius * Math.sin(angle) };
+        });
     players.forEach((p, i) => {
       drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, positions[i], false, sprites, p.id === targetId, false);
     });
@@ -352,7 +401,7 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.filter = 'saturate(0.6)';
-    ctx.drawImage(img, cx - r * 1.0, cy - r * 1.4, r * 2.0, r * 2.8);
+    ctx.drawImage(img, cx - r * 1.0, cy - r * -0.7, r * 2.0, r * 2.0);
     ctx.filter = 'none';
   } else {
     ctx.globalAlpha = isDead ? 0.5 : 1;
@@ -387,7 +436,8 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
 
   if (isTarget) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+    const spriteCy = cy + r * 1.5; // столько же сколько смещение спрайта
+    ctx.arc(cx, spriteCy, r * 0.8, 0, Math.PI * 2);
     ctx.strokeStyle = COLOR.hpEnemy;
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
@@ -415,7 +465,7 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
   const barW = r * 1.5;
   const barH = r * 0.22;
   const x = cx - barW / 2;
-  const y = cy - r * 1.2;
+  const y = cy - r * 1.2 + r * 2;
 
   const segW = barW / 3;
 

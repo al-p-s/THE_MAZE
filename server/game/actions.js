@@ -146,10 +146,10 @@ function actionUseHospital(gameState, socketId, choice) {
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
 
   const cell = getCell(gameState.maze, player.x, player.y);
-  if (!cell || cell.type !== 'hospital') return { ok: false, reason: 'not_hospital' };
+  if (!cell || cell.type !== 'hospital' || cell.used) return { ok: false, reason: 'not_hospital' };
 
   player.actionPoints -= 1;
-  cell.type = 'empty';
+  cell.used = true;
 
   if (choice === 'heal') {
     player.health = 3;
@@ -172,7 +172,7 @@ function actionUseArsenal(gameState, socketId) {
   if (!cell || cell.type !== 'arsenal') return { ok: false, reason: 'not_arsenal' };
 
   player.actionPoints -= 1;
-  cell.type = 'empty';
+  cell.used = true
 
   const roll = Math.random() < 0.5 ? 'ammo' : 'bombs';
   if (roll === 'ammo') player.ammo += 2;

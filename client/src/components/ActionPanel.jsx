@@ -25,8 +25,8 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
 
   const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
   
-  const onArsenal = cell?.type === 'arsenal';
-  const onHospital = cell?.type === 'hospital';
+  const onArsenal = cell?.type === 'arsenal' && !cell?.used;
+  const onHospital = cell?.type === 'hospital' && !cell?.used;
   const onTreasure = gameData?.treasure &&
     !gameData.treasure.destroyed &&
     !gameData.treasure.carriedBy &&
