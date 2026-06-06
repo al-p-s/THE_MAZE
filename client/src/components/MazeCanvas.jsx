@@ -401,7 +401,8 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.filter = 'saturate(0.6)';
-    ctx.drawImage(img, cx - r * 1.0, cy - r * -0.7, r * 2.0, r * 2.0);
+    const offsetY = isMe ? r * 0.7 : 0;
+    ctx.drawImage(img, cx - r * 1.0, cy - r * 1.0 + offsetY, r * 2.0, r * 2.0);
     ctx.filter = 'none';
   } else {
     ctx.globalAlpha = isDead ? 0.5 : 1;
@@ -493,19 +494,19 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
   }
 }
 
-function getPositions(cellX, cellY, CELL, total) {
-  const baseCx = cellX * CELL + CELL / 2;
-  const baseCy = cellY * CELL + CELL / 2;
-  if (total === 1) return [{ cx: baseCx, cy: baseCy }];
-  const radius = CELL * 0.28;
-  return Array.from({ length: total }, (_, i) => {
-    const angle = (2 * Math.PI * i) / total - Math.PI / 2;
-    return {
-      cx: baseCx + radius * Math.cos(angle),
-      cy: baseCy + radius * Math.sin(angle),
-    };
-  });
-}
+// function getPositions(cellX, cellY, CELL, total) {
+//   const baseCx = cellX * CELL + CELL / 2;
+//   const baseCy = cellY * CELL + CELL / 2;
+//   if (total === 1) return [{ cx: baseCx, cy: baseCy }];
+//   const radius = CELL * 0.28;
+//   return Array.from({ length: total }, (_, i) => {
+//     const angle = (2 * Math.PI * i) / total - Math.PI / 2;
+//     return {
+//       cx: baseCx + radius * Math.cos(angle),
+//       cy: baseCy + radius * Math.sin(angle),
+//     };
+//   });
+// }
 
 function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
   const cx = px + CELL / 2;
