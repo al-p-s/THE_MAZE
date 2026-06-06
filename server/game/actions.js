@@ -149,7 +149,6 @@ function actionUseHospital(gameState, socketId, choice) {
   if (!cell || cell.type !== 'hospital') return { ok: false, reason: 'not_hospital' };
 
   player.actionPoints -= 1;
-  if (direction) player.direction = direction;
   cell.type = 'empty';
 
   if (choice === 'heal') {
@@ -173,7 +172,6 @@ function actionUseArsenal(gameState, socketId) {
   if (!cell || cell.type !== 'arsenal') return { ok: false, reason: 'not_arsenal' };
 
   player.actionPoints -= 1;
-  if (direction) player.direction = direction;
   cell.type = 'empty';
 
   const roll = Math.random() < 0.5 ? 'ammo' : 'bombs';
@@ -231,7 +229,6 @@ function actionUseBomb(gameState, socketId, mode, direction) {
 
   if (mode === 'mine') {
     player.actionPoints -= 1;
-    if (direction) player.direction = direction;
     player.bombs -= 1;
     const cell = getCell(gameState.maze, player.x, player.y);
     cell.content = 'mine';
@@ -292,7 +289,6 @@ function actionUseMedkit(gameState, socketId) {
   if (!player.items.includes('medkit')) return { ok: false, reason: 'no_medkit' };
 
   player.actionPoints -= 1;
-  if (direction) player.direction = direction;
   player.items.splice(player.items.indexOf('medkit'), 1);
   player.health = Math.min(player.health + 1, 3);
   return { ok: true };
@@ -388,7 +384,6 @@ function actionMelee(gameState, socketId, targetId) {
   if (!target) return { ok: false, reason: 'no_target' };
 
   player.actionPoints -= 1;
-  if (direction) player.direction = direction;
   const roll = rollDice();
   if (roll <= 3) return { ok: true, hit: false, roll, targetId: target.id };
 
@@ -417,7 +412,6 @@ function actionLoot(gameState, socketId, targetId) {
   if (!corpse || corpse.looted) return { ok: false, reason: 'no_corpse' };
 
   player.actionPoints -= 1;
-  if (direction) player.direction = direction;
   corpse.looted = true;
 
   const loot = {};

@@ -31,6 +31,7 @@ const COLOR = {
 };
 
 const FLOOR_TILES = Array.from({length: 9}, (_, i) => `/tiles/floor/0${i+1}_tile.png`);
+const HOSPITAL_TILE_SRC = '/tiles/hospital.png';
 
 const SPRITES = {
   pinkerton: {
@@ -50,6 +51,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const containerRef = useRef(null);
   const spritesRef = useRef({});
   const floorTilesRef = useRef([]);
+  const hospitalTileRef = useRef(null);
   const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
@@ -68,6 +70,10 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       img.onload = () => setForceUpdate(n => n + 1);
       return img;
     });
+    const hImg = new Image();
+    hImg.src = HOSPITAL_TILE_SRC;
+    hImg.onload = () => setForceUpdate(n => n + 1);
+    hospitalTileRef.current = hImg;
   }, []);
 
   useEffect(() => {
@@ -108,7 +114,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
     canvas.width = maze.width * CELL;
     canvas.height = maze.height * CELL;
     const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir, floorTilesRef.current);
+    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir, floorTilesRef.current, hospitalTileRef.current);
   }, [gameData, targetId, myId, forceUpdate, mouseDir]);
 
   if (!gameData) return null;
@@ -120,7 +126,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -130,7 +136,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -161,7 +167,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -196,7 +202,15 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles) {
 
   // POI / content tint
   if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
-  if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
+  if (type === 'hospital') {
+    if (hospitalTile?.complete && hospitalTile.naturalWidth > 0) {
+      ctx.globalAlpha = cell.inZone ? 1 : 0.5;
+      ctx.drawImage(hospitalTile, px, py, CELL, CELL);
+      ctx.globalAlpha = 1;
+    } else {
+      drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
+    }
+  }
   if (content === 'mine') {
     const isOwner = cell.mineOwner === myId;
     ctx.globalAlpha = cell.inZone ? 1 : 0.4;
