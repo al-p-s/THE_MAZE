@@ -108,7 +108,9 @@ io.on('connection', (socket) => {
           return;
         }
       }
-      advanceTurn();
+      const p = gameState.players.find(p => p.id === socket.id);
+      if (p.actionPoints <= 0) advanceTurn();
+      else broadcastViews();
       return;
     }
     if (result.exit && result.won) {
