@@ -358,17 +358,25 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   const myKey = `${you.x},${you.y}`;
   const myCellmates = byCell[myKey] || [];
   const baseCx = you.x * CELL + CELL / 2;
-  const baseCy = you.y * CELL + CELL * 0.55;
+  const baseCy = you.y * CELL + CELL * 0.65;
   const youWithDir = { ...you, direction: mouseDir };
   drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, { cx: baseCx, cy: baseCy }, true, sprites, false, true);
 
-  const baseCyGroup = you.y * CELL + CELL * 0.45;
-  const radius = CELL * 0.5;
+  const enemyPositions = [
+    { dx: 0,    dy: -0.3 },  // сверху
+    { dx: 0.3,  dy: 0 },     // справа
+    { dx: -0.3, dy: 0 },     // слева
+    { dx: 0.3,  dy: -0.3 },  // верхний-правый
+    { dx: -0.3, dy: -0.3 },  // верхний-левый
+    { dx: 0.3,  dy: 0.3 },   // нижний-правый
+    { dx: -0.3, dy: 0.3 },   // нижний-левый
+  ];
+
   myCellmates.forEach((p, i) => {
-    const angle = (2 * Math.PI * i) / myCellmates.length - Math.PI / 2;
+    const offset = enemyPositions[i] ?? enemyPositions[0];
     const pos = {
-      cx: baseCx + radius * Math.cos(angle),
-      cy: baseCyGroup + radius * Math.sin(angle),
+      cx: you.x * CELL + CELL / 2 + offset.dx * CELL,
+      cy: you.y * CELL + CELL * 0.4 + offset.dy * CELL,
     };
     drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, pos, false, sprites, p.id === targetId, false);
   });
@@ -376,15 +384,23 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   // рисуем остальных visible (не в моей клетке)
   for (const [key, players] of Object.entries(byCell)) {
     if (key === myKey) continue;
-    const eCx = players[0].x * CELL + CELL / 2;
-    const eCy = players[0].y * CELL + CELL * 0.55;
-    const radius = CELL * 0.3;
+    const enemyPositions = [
+      { dx: 0,    dy: -0.3 },
+      { dx: 0.3,  dy: 0 },
+      { dx: -0.3, dy: 0 },
+      { dx: 0.3,  dy: -0.3 },
+      { dx: -0.3, dy: -0.3 },
+      { dx: 0.3,  dy: 0.3 },
+      { dx: -0.3, dy: 0.3 },
+    ];
+    const cellCx = players[0].x * CELL + CELL / 2;
+    const cellCy = players[0].y * CELL + CELL * 0.4;
     const positions = players.length === 1
-      ? [{ cx: eCx, cy: eCy }]
-      : players.map((_, i) => {
-          const angle = (2 * Math.PI * i) / players.length - Math.PI / 2;
-          return { cx: eCx + radius * Math.cos(angle), cy: eCy + radius * Math.sin(angle) };
-        });
+      ? [{ cx: cellCx, cy: players[0].y * CELL + CELL * 0.4 - CELL * 0.3 }]
+      : players.map((_, i) => ({
+          cx: cellCx + (enemyPositions[i]?.dx ?? 0) * CELL,
+          cy: cellCy + (enemyPositions[i]?.dy ?? 0) * CELL,
+        }));
     players.forEach((p, i) => {
       drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, positions[i], false, sprites, p.id === targetId, false);
     });
@@ -401,7 +417,7 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.filter = 'saturate(0.6)';
-    const offsetY = isMe ? r * 0.7 : 0;
+    const offsetY = r * 0.7;
     ctx.drawImage(img, cx - r * 1.0, cy - r * 1.0 + offsetY, r * 2.0, r * 2.0);
     ctx.filter = 'none';
   } else {
@@ -437,10 +453,10 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
 
   if (isTarget) {
     ctx.beginPath();
-    const spriteCy = cy + r * 1.5; // столько же сколько смещение спрайта
+    const spriteCy = cy + r * 0.7;
     ctx.arc(cx, spriteCy, r * 0.8, 0, Math.PI * 2);
     ctx.strokeStyle = COLOR.hpEnemy;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.setLineDash([4, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
@@ -464,9 +480,9 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
 
 function drawHealthBar(ctx, cx, cy, r, health, isMe) {
   const barW = r * 1.5;
-  const barH = r * 0.22;
+  const barH = r * 0.2;
   const x = cx - barW / 2;
-  const y = cy - r * 1.2 + r * 2;
+  const y = cy - r * 2 + r * 2;
 
   const segW = barW / 3;
 
