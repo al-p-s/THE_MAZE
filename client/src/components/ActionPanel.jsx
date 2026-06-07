@@ -102,15 +102,15 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
       if (!dir || disabled) return;
       if (mode === 'move') { actRef.current('action:move', { direction: dir }); setMouseDir(dir); }
       else if (mode === 'attack') {
-        if (e.altKey) { actRef.current('action:melee', { targetId }); setMouseDir(dir); }
+        if (e.shiftKey) { actRef.current('action:melee', { targetId }); setMouseDir(dir); }
         else { actRef.current('action:attack', { direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'bomb_wall') {
-        if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
+        if (e.shiftKey) actRef.current('action:use_bomb', { mode: 'mine' });
         else { actRef.current('action:use_bomb', { mode: 'wall', direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'check') {
-        if (e.altKey) { actRef.current('action:check_cell', { direction: dir }); setMouseDir(dir); }
+        if (e.shiftKey) { actRef.current('action:check_cell', { direction: dir }); setMouseDir(dir); }
         else { actRef.current('action:check_wall', { direction: dir }); setMouseDir(dir); }
       }
     };
@@ -171,11 +171,11 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
           </div>
           <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
             fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
-            {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
+            {mode === 'attack' ? <>[SHIFT]<br/>MELEE<br/>ATTACK</> : ''}
           </div>
           <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
             fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
-            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
+            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[SHIFT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[SHIFT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
       )}

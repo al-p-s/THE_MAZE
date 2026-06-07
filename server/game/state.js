@@ -85,7 +85,7 @@ function revealWall(player, x, y, direction) {
 
 function addDebuff(player, type, turns) {
   const existing = player.debuffs.find(d => d.type === type);
-  if (existing) existing.turnsLeft = Math.max(existing.turnsLeft, turns);
+  if (existing) existing.turnsLeft += turns;
   else player.debuffs.push({ type, turnsLeft: turns });
 }
 

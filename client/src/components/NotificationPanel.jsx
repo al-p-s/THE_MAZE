@@ -53,12 +53,12 @@ const styles = {
     width: '100%',
   },
   text: {
-    fontSize: '18px',
+    fontSize: '24px',
     fontWeight: 'bold',
     letterSpacing: '4px',
   },
   sub: {
-    fontSize: '13px',
+    fontSize: '18px',
     fontWeight: 'bold',
     color: '#aaa',
     letterSpacing: '2px',

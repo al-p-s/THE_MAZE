@@ -28,10 +28,10 @@ const COLOR = {
   warn: '#8a6020',
   heal: '#4a7a3a',
   miss: '#aaaaaa',
-  explosion: '#8a4010',
-  debuffW: '#c8860a',
-  debuffS: '#2e6a8a',
-  debuffP: '#8b1a1a',
+  explosion: '#df470a',
+  debuffW: '#f59920',
+  debuffS: '#9534d6',
+  debuffP: '#db1212',
 };
 
 export default function App() {

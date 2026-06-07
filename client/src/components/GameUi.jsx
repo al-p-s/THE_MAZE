@@ -3,9 +3,9 @@ import { useRef, useEffect } from 'react';
 const COLOR = {
   accent: '#c8a84b',
   hp: '#2d6e2d',
-  debuffW: '#c8860a',
-  debuffS: '#2e6a8a',
-  debuffP: '#8b1a1a',
+  debuffW: '#f59920',
+  debuffS: '#9534d6',
+  debuffP: '#db1212',
   debuffDefault: '#6a6a6a',
   dim: '#3a3228',
   border: '#3a2e1e',
