@@ -25,7 +25,7 @@ const COLOR = {
   hpEnemy: '#8b2020',
   mineFill: '#ff220033',
   mineLabel: '#ffffffd0',
-  fogOverlay: 'rgba(0,0,0,0.45)',
+  fogOverlay: 'rgba(0,0,0,0.55)',
   canvasBorder: '#222',
   enemyPlayer: '#ff6666',
 };
@@ -267,7 +267,7 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
       ctx.drawImage(
         mineImg,
         px + (CELL - size) / 2,
-        py + CELL - size - 2,
+        py + (CELL - size) / 2,
         size,
         size
       );
