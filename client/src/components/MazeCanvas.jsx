@@ -37,6 +37,10 @@ const ARSENAL_TILE_SRC = '/tiles/arsenal.png';
 const ARSENAL_USED_TILE_SRC = '/tiles/arsenal_used.png';
 
 const SPRITES = {
+  mine: {
+    on: '/sprites/mine/mine_on.png',
+    off: '/sprites/mine/mine_off.png',
+  },
   pinkerton: {
     top: '/sprites/pinkerton/02_back.png',
     bottom: '/sprites/pinkerton/02_front.png',
@@ -46,7 +50,7 @@ const SPRITES = {
     top_right: '/sprites/pinkerton/02_back_right.png',
     bottom_left: '/sprites/pinkerton/02_front_left.png',
     bottom_right: '/sprites/pinkerton/02_front_right.png',
-  }
+  },
 };
 
 export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMouseDir }) {
@@ -58,7 +62,8 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const hospitalUsedTileRef = useRef(null);
   const arsenalTileRef = useRef(null);
   const arsenalUsedTileRef = useRef(null);
-  const [forceUpdate, setForceUpdate] = useState(0);
+
+  const [, setForceUpdate] = useState(0);
 
   useEffect(() => {
     for (const [cls, dirs] of Object.entries(SPRITES)) {
@@ -125,20 +130,28 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
     return () => window.removeEventListener('mousemove', handler);
   }, [gameData, setMouseDir]);
 
+  const animRef = useRef(null);
   useEffect(() => {
-    if (!gameData || !containerRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { maze } = gameData;
-    const { offsetWidth, offsetHeight } = containerRef.current;
-    const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
-    const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
-    canvas.width = maze.width * CELL;
-    canvas.height = maze.height * CELL;
-    const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
-      floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current, arsenalTileRef.current, arsenalUsedTileRef.current);
-  }, [gameData, targetId, myId, forceUpdate, mouseDir]);
+    const loop = () => {
+      animRef.current = requestAnimationFrame(loop);
+      if (!canvasRef.current || !containerRef.current || !gameData) return;
+      const canvas = canvasRef.current;
+      const { maze } = gameData;
+      const { offsetWidth, offsetHeight } = containerRef.current;
+      const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
+      const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
+      if (canvas.width !== maze.width * CELL) {
+        canvas.width = maze.width * CELL;
+        canvas.height = maze.height * CELL;
+      }
+      const ctx = canvas.getContext('2d');
+      draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
+        floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
+        arsenalTileRef.current, arsenalUsedTileRef.current);
+    };
+    animRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [gameData, targetId, myId, mouseDir]);
 
   if (!gameData) return null;
 
@@ -159,7 +172,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, sprites);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -190,7 +203,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, sprites) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -245,21 +258,19 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
     }
   }
   if (content === 'mine') {
-    const isOwner = cell.mineOwner === myId;
+    const pulse = Math.floor(Date.now() / 500) % 2 === 0;
+    const mineImg = pulse ? sprites?.mine?.on : sprites?.mine?.off;
     ctx.globalAlpha = cell.inZone ? 1 : 0.4;
-    ctx.fillStyle = COLOR.mineFill;
-    ctx.beginPath();
-    ctx.arc(px + CELL - CELL * 0.18, py + CELL - CELL * 0.18, CELL * 0.12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = COLOR.mine;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    if (isOwner) {
-      ctx.fillStyle = COLOR.mineLabel;
-      ctx.font = `bold ${CELL * 0.1}px "Courier New"`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('UR', px + CELL - CELL * 0.18, py + CELL - CELL * 0.18);
+    if (mineImg?.complete && mineImg.naturalWidth > 0) {
+      const size = CELL * 0.25;
+
+      ctx.drawImage(
+        mineImg,
+        px + (CELL - size) / 2,
+        py + CELL - size - 2,
+        size,
+        size
+      );
     }
     ctx.globalAlpha = 1;
   }
@@ -464,14 +475,20 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
 
   if (player.hasTreasure) {
     const barW = r * 1.5;
-    const barY = cy - r * 1.2;
+    const hpX = cx - barW / 2;
+    const hpY = cy;
+
     ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${r * 0.6}px "Spectral"`;
+    ctx.font = `bold ${r * 0.7}px "Spectral"`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = COLOR.treasure;
     ctx.shadowBlur = 8;
-    ctx.fillText('◆', cx - barW / 2 - r * 0.2, barY + r * 0.2);
+    ctx.fillText(
+      '◆',
+      hpX + barW / 2,  // центр HP-бара
+      hpY - r * 0.01   // немного выше полоски
+    );
     ctx.shadowBlur = 0;
   }
 
