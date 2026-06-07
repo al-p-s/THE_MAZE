@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { Footprints, BrickWallFire, Bomb, Sword, Swords, Search, ScanSearch } from 'lucide-react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
 const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
@@ -18,7 +19,7 @@ const COLOR = {
 
 export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId, setMouseDir }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
-
+  const [shiftHeld, setShiftHeld] = useState(false);
   const disabled = !isMyTurn || !me || me.actionPoints < 1;
   const actRef = useRef(act);
   useEffect(() => { actRef.current = act; }, [act]);
@@ -118,6 +119,13 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     return () => window.removeEventListener('keydown', handler);
   }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, corpsesHere, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y, setMouseDir ]);
 
+  useEffect(() => {
+    const down = (e) => { if (e.key === 'Shift') setShiftHeld(true); };
+    const up = (e) => { if (e.key === 'Shift') setShiftHeld(false); };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
   if (!me) return null;
 
   const dirBtn = (dir, action, payload = {}) => (
@@ -165,8 +173,15 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
               if (mode === 'check') return dirBtn(dir, 'action:check_wall');
               return null;
             })}
-            <div style={styles.dpadCenter}>
-              {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+            <div style={{ ...styles.dpadCenter, opacity: modeDisabled ? 0.3 : 1 }}>
+              {mode === 'move'
+                ? <Footprints size={18} />
+                : mode === 'attack'
+                  ? (shiftHeld ? <Swords size={18} /> : <Sword size={18} />)
+                  : mode === 'bomb_wall'
+                    ? (shiftHeld ? <Bomb size={18} /> : <BrickWallFire size={18} />)
+                    : (shiftHeld ? <ScanSearch size={18} /> : <Search size={18} />)
+              }
             </div>
           </div>
           <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
