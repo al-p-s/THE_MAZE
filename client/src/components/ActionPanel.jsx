@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Footprints, BrickWallFire, Bomb, Sword, Swords, Search, ScanSearch } from 'lucide-react';
+import { Footprints, BrickWallFire, Bomb, LocateFixed, Sword, Search, ScanSearch,  } from 'lucide-react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
 const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
@@ -175,12 +175,12 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
             })}
             <div style={{ ...styles.dpadCenter, opacity: modeDisabled ? 0.3 : 1 }}>
               {mode === 'move'
-                ? <Footprints size={18} />
+                ? <Footprints size={30} />
                 : mode === 'attack'
-                  ? (shiftHeld ? <Swords size={18} /> : <Sword size={18} />)
+                  ? (shiftHeld ? <Sword size={30} /> : <LocateFixed size={30} />)
                   : mode === 'bomb_wall'
-                    ? (shiftHeld ? <Bomb size={18} /> : <BrickWallFire size={18} />)
-                    : (shiftHeld ? <ScanSearch size={18} /> : <Search size={18} />)
+                    ? (shiftHeld ? <Bomb size={30} /> : <BrickWallFire size={30} />)
+                    : (shiftHeld ? <ScanSearch size={30} /> : <Search size={30} />)
               }
             </div>
           </div>

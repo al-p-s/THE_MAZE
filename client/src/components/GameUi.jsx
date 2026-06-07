@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { TestTube, Bomb, BriefcaseMedical } from 'lucide-react';
 
 const COLOR = {
   accent: '#c8a84b',
@@ -125,19 +126,19 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.section}>
         <div style={styles.label}>INVENTORY</div>
         <div style={styles.invGrid}>
-          <InvItem symbol="◆" label="Ammo" count={me.ammo} />
-          <InvItem symbol="✦" label="Bombs" count={me.bombs} />
-          <InvItem symbol="✚" label="Medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
+          <InvItem icon={<TestTube size={18} color={COLOR.accent} style={{ display: 'block' }} />} label="Ammo" count={me.ammo} />
+          <InvItem icon={<Bomb size={18} color={COLOR.accent} />} label="Bombs" count={me.bombs} />
+          <InvItem icon={<BriefcaseMedical size={18} color={COLOR.accent} />} label="Medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
         </div>
       </div>
     </div>
   );
 }
 
-function InvItem({ symbol, label, count }) {
+function InvItem({ icon, label, count }) {
   return (
     <div style={styles.invItem}>
-      <span style={{ color: COLOR.accent, fontSize: '14px', width: '16px' }}>{symbol}</span>
+      <span style={{ width: '16px', display: 'flex', alignItems: 'center' }}>{icon}</span>
       <span style={{ color: COLOR.textDim, fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: '6px' }}>{label}</span>
       <span style={{ color: count > 0 ? COLOR.accent : COLOR.textDim, fontWeight: 'bold', fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: 'auto' }}>{count}</span>
     </div>
