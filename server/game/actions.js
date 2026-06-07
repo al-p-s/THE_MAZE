@@ -344,8 +344,11 @@ function actionAttack(gameState, socketId, direction, targetId) {
     if (cell.walls[direction]) break; // стена на пути
     x += dx;
     y += dy;
-    const hit = gameState.players.find(p => p.isAlive && p.x === x && p.y === y && p.id !== socketId);
-    if (hit) { target = hit; break; }
+    const hitsInCell = gameState.players.filter(p => p.isAlive && p.x === x && p.y === y && p.id !== socketId);
+    if (hitsInCell.length > 0) {
+      target = hitsInCell[Math.floor(Math.random() * hitsInCell.length)];
+      break;
+    }
   }
 
   if (!target) {
