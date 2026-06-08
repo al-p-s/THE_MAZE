@@ -34,11 +34,17 @@ const HOSPITAL_TILE_SRC = '/tiles/hospital.png';
 const HOSPITAL_USED_TILE_SRC = '/tiles/hospital_used.png';
 const ARSENAL_TILE_SRC = '/tiles/arsenal.png';
 const ARSENAL_USED_TILE_SRC = '/tiles/arsenal_used.png';
+const TREASURE_TILE_SRC = '/tiles/treasure_tile.png';
+const TREASURE_USED_TILE_SRC = '/tiles/treasure_tile_used.png';
+
 
 const SPRITES = {
   mine: {
     on: '/sprites/mine/mine_on.png',
     off: '/sprites/mine/mine_off.png',
+  },
+  treasure: {
+    treasure: '/sprites/treasure/treasure.png',
   },
   pinkerton: {
     top: '/sprites/pinkerton/02_back.png',
@@ -57,10 +63,15 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const containerRef = useRef(null);
   const spritesRef = useRef({});
   const floorTilesRef = useRef([]);
+
   const hospitalTileRef = useRef(null);
   const hospitalUsedTileRef = useRef(null);
+
   const arsenalTileRef = useRef(null);
   const arsenalUsedTileRef = useRef(null);
+
+  const treasureTileRef = useRef(null);
+  const treasureTileUsedRef = useRef(null);
 
   const [, setForceUpdate] = useState(0);
 
@@ -100,6 +111,16 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
     auImg.src = ARSENAL_USED_TILE_SRC;
     auImg.onload = () => setForceUpdate(n => n + 1);
     arsenalUsedTileRef.current = auImg;
+
+    const ttImg = new Image();
+    ttImg.src = TREASURE_TILE_SRC;
+    ttImg.onload = () => setForceUpdate(n => n + 1);
+    treasureTileRef.current = ttImg;
+
+    const ttuImg = new Image();
+    ttuImg.src = TREASURE_USED_TILE_SRC;
+    ttuImg.onload = () => setForceUpdate(n => n + 1);
+    treasureTileUsedRef.current = ttuImg;
   }, []);
 
   useEffect(() => {
@@ -146,7 +167,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       const ctx = canvas.getContext('2d');
       draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
         floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
-        arsenalTileRef.current, arsenalUsedTileRef.current);
+        arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current);
     };
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
@@ -161,7 +182,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -171,7 +192,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, sprites);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, sprites);
 
   for (const row of maze.cells)
     for (const cell of row)
@@ -202,7 +223,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, sprites) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, sprites) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -277,8 +298,44 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
     }
     ctx.globalAlpha = 1;
   }
-  if (cell.treasure) {
-    drawTreasure(ctx, px, py, CELL, cell.treasure.isBuried, cell.inZone);
+  if (cell.dugUp) {
+    const tile = treasureUsedTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
+  } else if (cell.treasure && cell.treasure.isBuried) {
+    const tile = treasureTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
+  }
+
+  if (cell.treasure && !cell.treasure.isBuried) {
+    const chest = sprites?.treasure?.treasure;
+    if (chest?.complete && chest.naturalWidth > 0) {
+      const size = CELL * 0.35;
+      ctx.filter = 'saturate(0.8) brightness(0.9)';
+      // ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 6;
+      ctx.drawImage(chest, px + (CELL - size) / 2, py + (CELL - size) / 2 + CELL * 0.02, size, size);
+      ctx.filter = 'none';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
   }
 }
 
@@ -514,7 +571,7 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
   const barW = r * 1.5;
   const barH = r * 0.2;
   const x = cx - barW / 2;
-  const y = cy - r * 2 + r * 2;
+  const y = cy - r * 2 + r * 1.95;
 
   const segW = barW / 3;
 
@@ -556,46 +613,46 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
 //   });
 // }
 
-function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
-  const cx = px + CELL / 2;
-  const cy = py + CELL / 2;
-  const r = CELL * 0.25;
-  ctx.globalAlpha = active ? 1 : 0.4;;
+// function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
+//   const cx = px + CELL / 2;
+//   const cy = py + CELL / 2;
+//   const r = CELL * 0.25;
+//   ctx.globalAlpha = active ? 1 : 0.4;;
 
-  if (isBuried) {
-    // пунктирный кружок
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = COLOR.treasure + '88';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = COLOR.treasure + '33';
-    ctx.fill();
-    ctx.fillStyle = COLOR.treasure + '66';
-    ctx.font = `${CELL * 0.18}px "Courier New"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('BURIED', cx, cy);
-  } else {
-    // solid кружок
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = COLOR.treasure + '33';
-    ctx.fill();
-    ctx.strokeStyle = COLOR.treasure;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('◆', cx, cy);
-  }
+//   if (isBuried) {
+//     // пунктирный кружок
+//     ctx.beginPath();
+//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
+//     ctx.strokeStyle = COLOR.treasure + '88';
+//     ctx.lineWidth = 2;
+//     ctx.setLineDash([4, 4]);
+//     ctx.stroke();
+//     ctx.setLineDash([]);
+//     ctx.fillStyle = COLOR.treasure + '33';
+//     ctx.fill();
+//     ctx.fillStyle = COLOR.treasure + '66';
+//     ctx.font = `${CELL * 0.18}px "Courier New"`;
+//     ctx.textAlign = 'center';
+//     ctx.textBaseline = 'middle';
+//     ctx.fillText('BURIED', cx, cy);
+//   } else {
+//     // solid кружок
+//     ctx.beginPath();
+//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
+//     ctx.fillStyle = COLOR.treasure + '33';
+//     ctx.fill();
+//     ctx.strokeStyle = COLOR.treasure;
+//     ctx.lineWidth = 2;
+//     ctx.stroke();
+//     ctx.fillStyle = COLOR.treasure;
+//     ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
+//     ctx.textAlign = 'center';
+//     ctx.textBaseline = 'middle';
+//     ctx.fillText('◆', cx, cy);
+//   }
 
-  ctx.globalAlpha = 1;
-}
+//   ctx.globalAlpha = 1;
+// }
 
 const styles = {
   canvas: {

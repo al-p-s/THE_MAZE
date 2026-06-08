@@ -195,6 +195,8 @@ function actionTreasure(gameState, socketId, action) {
     if (!onTreasureCell || !t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_dig' };
     player.actionPoints -= 1;
     t.isBuried = false;
+    const cell = getCell(gameState.maze, t.x, t.y);
+    cell.dugUp = true;
     return { ok: true, action: 'dig' };
   }
 
