@@ -24,14 +24,15 @@ const COLOR = {
   text: '#a89070',
   textDim: '#c8c0b0',
   accent: '#c8a84b',
-  danger: '#8b2020',
+  safe: '#49d3d3',
+  danger: '#af0b0b',
   warn: '#8a6020',
   heal: '#4a7a3a',
   miss: '#aaaaaa',
   explosion: '#df470a',
   debuffW: '#f59920',
   debuffS: '#9534d6',
-  debuffP: '#db1212',
+  debuffP: '#d13333',
 };
 
 export default function App() {
@@ -104,7 +105,7 @@ export default function App() {
     socket.emit(event, payload);
   }, [isMyTurn, me, gameData]);
   
-  const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y) ?? [];
+  const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y && !p.isDead) ?? [];
   const effectiveTargetId = cellmates.find(p => p.id === targetId)?.id ?? cellmates[0]?.id ?? null;
 
   return (
@@ -256,17 +257,17 @@ function makeNotification(ev, myId) {
   if (ev.event === 'cell_checked' && ev.playerId === myId) {
     return ev.content
       ? { text: 'DANGER!', color: COLOR.danger, sub: ev.content }
-      : { text: 'SAFE!', color: COLOR.accent };
+      : { text: 'SAFE!', color: COLOR.safe };
   }
   if (ev.event === 'wall_checked' && ev.playerId === myId) {
     return ev.isEdge
       ? { text: 'NOTHING...', color: COLOR.miss }
       : ev.hasWall
         ? { text: 'WALL!', color: COLOR.miss }
-        : { text: 'FREE!', color: COLOR.accent };
+        : { text: 'FREE!', color: COLOR.safe };
   }
   if (ev.event === 'exit_found' && ev.playerId === myId) {
-    return { text: 'EXIT DETECTED!', color: COLOR.accent };
+    return { text: 'EXIT DETECTED!', color: COLOR.safe };
   }
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge

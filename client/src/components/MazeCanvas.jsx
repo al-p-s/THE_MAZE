@@ -14,7 +14,7 @@ const COLOR = {
   arsenal: '#ffaa00',
   hospital: '#ff4488',
   treasure: '#ffd700',
-  mine: '#ff2200',
+  mine: '#df1e00',
   grid: '#1e1e1e',
   wallDash: '#3a3a3a44',
   gridLine: '#000',
@@ -22,12 +22,11 @@ const COLOR = {
   deadStroke: '#333',
   hpEmpty: '#1a0a0a',
   hpMe: '#5da844',
-  hpEnemy: '#8b2020',
+  hpEnemy: '#af0b0b',
   mineFill: '#ff220033',
   mineLabel: '#ffffffd0',
   fogOverlay: 'rgba(0,0,0,0.55)',
   canvasBorder: '#222',
-  enemyPlayer: '#ff6666',
 };
 
 const FLOOR_TILES = Array.from({length: 9}, (_, i) => `/tiles/floor/0${i+1}_tile.png`);
@@ -240,9 +239,11 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
   if (type === 'arsenal') {
     const tile = cell.used ? arsenalUsedTile : arsenalTile;
     if (tile?.complete && tile.naturalWidth > 0) {
-      ctx.globalAlpha = cell.inZone ? 1 : 0.5;
       ctx.drawImage(tile, px, py, CELL, CELL);
-      ctx.globalAlpha = 1;
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
     } else {
       drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
     }
@@ -250,9 +251,11 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
   if (type === 'hospital') {
     const tile = cell.used ? hospitalUsedTile : hospitalTile;
     if (tile?.complete && tile.naturalWidth > 0) {
-      ctx.globalAlpha = cell.inZone ? 1 : 0.5;
       ctx.drawImage(tile, px, py, CELL, CELL);
-      ctx.globalAlpha = 1;
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
     } else {
       drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
     }
@@ -267,7 +270,7 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
       ctx.drawImage(
         mineImg,
         px + (CELL - size) / 2,
-        py + (CELL - size) / 2,
+        py + (CELL - size) / 2 + CELL * 0.3,
         size,
         size
       );
@@ -452,25 +455,37 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.moveTo(cx + r * 0.6, cy - r * 0.6);
     ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
     ctx.stroke();
-    if (player.looted) {
-      ctx.fillStyle = COLOR.deadPlayer;
-      ctx.font = `${r * 0.9}px "Courier New"`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('∅', cx, cy + r * 1.3);
-    }
     return; // не рисуем хелсбар и клад
   }
 
   if (isTarget) {
-    ctx.beginPath();
     const spriteCy = cy + r * 0.7;
-    ctx.arc(cx, spriteCy, r * 0.8, 0, Math.PI * 2);
+    const s = r * 0.4;
     ctx.strokeStyle = COLOR.hpEnemy;
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 2;
+
+    // круг
+    ctx.beginPath();
+    ctx.arc(cx, spriteCy, s, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.setLineDash([]);
+
+    // крестик
+    const gap = s * 0.3;
+    // горизонталь
+    ctx.beginPath();
+    ctx.moveTo(cx - s - s * 0.3, spriteCy);
+    ctx.lineTo(cx - gap, spriteCy);
+    ctx.moveTo(cx + gap, spriteCy);
+    ctx.lineTo(cx + s + s * 0.3, spriteCy);
+    ctx.stroke();
+
+    // вертикаль
+    ctx.beginPath();
+    ctx.moveTo(cx, spriteCy - s - s * 0.3);
+    ctx.lineTo(cx, spriteCy - gap);
+    ctx.moveTo(cx, spriteCy + gap);
+    ctx.lineTo(cx, spriteCy + s + s * 0.3);
+    ctx.stroke();
   }
 
   if (player.hasTreasure) {

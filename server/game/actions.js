@@ -302,6 +302,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
   if (player.ammo < 1) return { ok: false, reason: 'no_ammo' };
+  if (player.debuffs.some(d => d.type === 'W')) return { ok: false, reason: 'weakness' };
 
   // если передан targetId — бьём напрямую
   if (targetId) {
@@ -379,6 +380,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
 function actionMelee(gameState, socketId, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
+  if (player.debuffs.some(d => d.type === 'W')) return { ok: false, reason: 'weakness' };
 
   const target = targetId
     ? gameState.players.find(p => p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y)

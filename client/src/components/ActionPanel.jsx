@@ -11,7 +11,6 @@ const COLOR = {
   textDim: '#c8c0b0',
   bg: '#0e0c09',
   border: '#3a2e1e',
-  danger: '#8b2020',
   heal: '#4a7a3a',
   hint: '#6a5a48',
   dirBg: '#13110e',
@@ -83,7 +82,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
       }
       if (key === 'tab') {
         e.preventDefault();
-        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y) ?? [];
+        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y && !p.isDead) ?? [];
         if (cellmates.length < 2) return;
         const idx = cellmates.findIndex(p => p.id === targetId);
         setTargetId(cellmates[(idx + 1) % cellmates.length].id);
@@ -149,8 +148,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     </button>
   );
 
+  const hasWeakness = me.debuffs?.some(d => d.type === 'W');
   const modeDisabled = disabled
-    || (mode === 'bomb_wall' && me.bombs < 1);
+    || (mode === 'bomb_wall' && me.bombs < 1)
+    || (mode === 'attack' && hasWeakness);
 
   return (
     <div style={styles.root}>
@@ -225,7 +226,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
         {hasTreasure &&
           <ActionBtn label="[F] DROP TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
 
-        {corpsesHere.map(c => (
+        {corpsesHere.filter(c => !c.looted).map(c => (
           <ActionBtn
             key={c.id} label={`[C] LOOT`}
             color={COLOR.accent} disabled={disabled}
@@ -267,7 +268,7 @@ const styles = {
     border: '1px solid',
     padding: '3px 6px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -275,9 +276,9 @@ const styles = {
   },
   dpad: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 36px)',
-    gridTemplateRows: 'repeat(3, 36px)',
-    gap: '3px',
+    gridTemplateColumns: 'repeat(3, 46px)',
+    gridTemplateRows: 'repeat(3, 46px)',
+    gap: '4px',
     alignSelf: 'center',
     marginTop: '4px',
     margin: '0 auto',
@@ -296,7 +297,7 @@ const styles = {
     border: `1px solid ${COLOR.dim}`,
     color: COLOR.accent,
     fontWeight: 'bold',
-    fontSize: '16px',
+    fontSize: '18px',
     cursor: 'pointer',
     borderRadius: '2px',
     transition: 'background 0.1s',
@@ -319,7 +320,7 @@ const styles = {
     border: '1px solid',
     padding: '3px 8px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -331,7 +332,7 @@ const styles = {
     color: COLOR.textDim,
     padding: '6px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '2px',
     cursor: 'pointer',
     borderRadius: '2px',
