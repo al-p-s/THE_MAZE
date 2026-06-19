@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Footprints, BrickWallFire, Bomb, LocateFixed, Sword, Search, ScanSearch,  } from 'lucide-react';
 
 const DIRS = ['top', 'right', 'bottom', 'left'];
 const DIR_LABEL = { top: 'W', right: 'D', bottom: 'S', left: 'A' };
@@ -10,23 +11,22 @@ const COLOR = {
   textDim: '#c8c0b0',
   bg: '#0e0c09',
   border: '#3a2e1e',
-  danger: '#8b2020',
   heal: '#4a7a3a',
-  warn: '#8a6020',
   hint: '#6a5a48',
   dirBg: '#13110e',
 };
 
-export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId }) {
+export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, setTargetId, setMouseDir }) {
   const [mode, setMode] = useState('move'); // move | attack | bomb_wall | bomb_mine | check_wall | check_cell | melee
-
+  const [shiftHeld, setShiftHeld] = useState(false);
   const disabled = !isMyTurn || !me || me.actionPoints < 1;
   const actRef = useRef(act);
   useEffect(() => { actRef.current = act; }, [act]);
 
   const cell = gameData?.maze?.cells?.[me?.y]?.[me?.x];
-  const onArsenal = cell?.type === 'arsenal';
-  const onHospital = cell?.type === 'hospital';
+  
+  const onArsenal = cell?.type === 'arsenal' && !cell?.used;
+  const onHospital = cell?.type === 'hospital' && !cell?.used;
   const onTreasure = gameData?.treasure &&
     !gameData.treasure.destroyed &&
     !gameData.treasure.carriedBy &&
@@ -34,6 +34,12 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     me?.y === gameData.treasure?.y;
   const hasTreasure = me?.hasTreasure;
   const hasMedkit = me?.items?.includes('medkit');
+  const corpsesHere = useMemo(
+    () => gameData?.visiblePlayers?.filter(
+      p => p.isDead && p.x === me?.x && p.y === me?.y
+    ) ?? [],
+    [gameData?.visiblePlayers, me?.x, me?.y]
+  );
 
   useEffect(() => {
     const KEY_DIR = {
@@ -76,7 +82,7 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
       }
       if (key === 'tab') {
         e.preventDefault();
-        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y) ?? [];
+        const cellmates = gameData?.visiblePlayers?.filter(p => p.x === me.x && p.y === me.y && !p.isDead) ?? [];
         if (cellmates.length < 2) return;
         const idx = cellmates.findIndex(p => p.id === targetId);
         setTargetId(cellmates[(idx + 1) % cellmates.length].id);
@@ -86,27 +92,39 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
         if (targetId && !disabled) actRef.current('action:attack', { targetId });
         return;
       }
+      if (key === 'c' || key === 'с') {
+        if (corpsesHere.length > 0 && !disabled)
+          actRef.current('action:loot', { targetId: corpsesHere[0].id });
+        return;
+      }
 
       const dir = KEY_DIR[key];
       if (!dir || disabled) return;
-      if (mode === 'move') actRef.current('action:move', { direction: dir });
+      if (mode === 'move') { actRef.current('action:move', { direction: dir }); setMouseDir(dir); }
       else if (mode === 'attack') {
-        if (e.altKey) actRef.current('action:melee', { targetId });
-        else actRef.current('action:attack', { direction: dir });
+        if (e.shiftKey) { actRef.current('action:melee', { targetId }); setMouseDir(dir); }
+        else { actRef.current('action:attack', { direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'bomb_wall') {
-        if (e.altKey) actRef.current('action:use_bomb', { mode: 'mine' });
-        else actRef.current('action:use_bomb', { mode: 'wall', direction: dir });
+        if (e.shiftKey) actRef.current('action:use_bomb', { mode: 'mine' });
+        else { actRef.current('action:use_bomb', { mode: 'wall', direction: dir }); setMouseDir(dir); }
       }
       else if (mode === 'check') {
-        if (e.altKey) actRef.current('action:check_cell', { direction: dir });
-        else actRef.current('action:check_wall', { direction: dir });
+        if (e.shiftKey) { actRef.current('action:check_cell', { direction: dir }); setMouseDir(dir); }
+        else { actRef.current('action:check_wall', { direction: dir }); setMouseDir(dir); }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y]);
+  }, [isMyTurn, disabled, mode, onArsenal, onHospital, onTreasure, hasTreasure, corpsesHere, gameData?.treasure?.isBuried, hasMedkit, targetId, setTargetId, gameData, me?.x, me?.y, setMouseDir ]);
 
+  useEffect(() => {
+    const down = (e) => { if (e.key === 'Shift') setShiftHeld(true); };
+    const up = (e) => { if (e.key === 'Shift') setShiftHeld(false); };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
   if (!me) return null;
 
   const dirBtn = (dir, action, payload = {}) => (
@@ -130,8 +148,10 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
     </button>
   );
 
+  const hasWeakness = me.debuffs?.some(d => d.type === 'W');
   const modeDisabled = disabled
-    || (mode === 'bomb_wall' && me.bombs < 1);
+    || (mode === 'bomb_wall' && me.bombs < 1)
+    || (mode === 'attack' && hasWeakness);
 
   return (
     <div style={styles.root}>
@@ -154,17 +174,24 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
               if (mode === 'check') return dirBtn(dir, 'action:check_wall');
               return null;
             })}
-            <div style={styles.dpadCenter}>
-              {mode === 'move' ? '✦' : mode === 'attack' ? '⚡' : mode === 'bomb_wall' ? '💥' : '?'}
+            <div style={{ ...styles.dpadCenter, opacity: modeDisabled ? 0.3 : 1 }}>
+              {mode === 'move'
+                ? <Footprints size={30} />
+                : mode === 'attack'
+                  ? (shiftHeld ? <Sword size={30} /> : <LocateFixed size={30} />)
+                  : mode === 'bomb_wall'
+                    ? (shiftHeld ? <Bomb size={30} /> : <BrickWallFire size={30} />)
+                    : (shiftHeld ? <ScanSearch size={30} /> : <Search size={30} />)
+              }
             </div>
           </div>
           <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
             fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
-            {mode === 'attack' ? <>[ALT]<br/>MELEE<br/>ATTACK</> : ''}
+            {mode === 'attack' ? <>[SHIFT]<br/>MELEE<br/>ATTACK</> : ''}
           </div>
           <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold',
             fontSize: '14px', opacity: modeDisabled ? 0.5 : 1, color: COLOR.textDim, lineHeight: '1.8', textAlign: 'center' }}>
-            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[ALT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[ALT]<br/>CHECK<br/>CELL</> : ''}
+            {mode === 'attack' ? <>[TAB]<br/>AIM<br/><br/>[R]<br/>POINT-BLANK</> : mode === 'bomb_wall' ? <>[SHIFT]<br/>PLANT<br/>MINE</> : mode === 'check' ? <>[SHIFT]<br/>CHECK<br/>CELL</> : ''}
           </div>
         </div>
       )}
@@ -198,6 +225,14 @@ export default function ActionPanel({ me, isMyTurn, act, gameData, targetId, set
 
         {hasTreasure &&
           <ActionBtn label="[F] DROP TREASURE" color={COLOR.accent} disabled={disabled} onClick={() => act('action:treasure', { action: 'drop' })} />}
+
+        {corpsesHere.filter(c => !c.looted).map(c => (
+          <ActionBtn
+            key={c.id} label={`[C] LOOT`}
+            color={COLOR.accent} disabled={disabled}
+            onClick={() => act('action:loot', { targetId: c.id })}
+          />
+        ))}
       </div>
     </div>
   );
@@ -233,7 +268,7 @@ const styles = {
     border: '1px solid',
     padding: '3px 6px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -241,9 +276,9 @@ const styles = {
   },
   dpad: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 36px)',
-    gridTemplateRows: 'repeat(3, 36px)',
-    gap: '3px',
+    gridTemplateColumns: 'repeat(3, 46px)',
+    gridTemplateRows: 'repeat(3, 46px)',
+    gap: '4px',
     alignSelf: 'center',
     marginTop: '4px',
     margin: '0 auto',
@@ -262,7 +297,7 @@ const styles = {
     border: `1px solid ${COLOR.dim}`,
     color: COLOR.accent,
     fontWeight: 'bold',
-    fontSize: '16px',
+    fontSize: '18px',
     cursor: 'pointer',
     borderRadius: '2px',
     transition: 'background 0.1s',
@@ -285,7 +320,7 @@ const styles = {
     border: '1px solid',
     padding: '3px 8px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '1px',
     cursor: 'pointer',
     borderRadius: '2px',
@@ -297,7 +332,7 @@ const styles = {
     color: COLOR.textDim,
     padding: '6px',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '16px',
     letterSpacing: '2px',
     cursor: 'pointer',
     borderRadius: '2px',

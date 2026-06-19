@@ -1,18 +1,19 @@
 import { useRef, useEffect } from 'react';
+import { TestTube, Bomb, BriefcaseMedical } from 'lucide-react';
 
 const COLOR = {
   accent: '#c8a84b',
-  hp: '#8b2020',
-  debuffW: '#c8860a',
-  debuffS: '#2e6a8a',
-  debuffP: '#8b1a1a',
+  hp: '#2d6e2d',
+  debuffW: '#f59920',
+  debuffS: '#ae37fd',
+  debuffP: '#d13333',
   debuffDefault: '#6a6a6a',
   dim: '#3a3228',
   border: '#3a2e1e',
   textDim: '#c8c0b0',
   hpEmpty: '#2a1a1a',
   hpBorder: '#5a3020',
-  hpHighlight: '#c84040',
+  hpHighlight: '#4a9e4a',
   bgActive: '#1a1408',
   bgInactive: '#0e0c09',
   borderInactive: '#2a2318',
@@ -27,13 +28,13 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
     const canvas = hpCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 72, 14);
+    ctx.clearRect(0, 0, 120, 26);
     for (let i = 0; i < 3; i++) {
       const hp = Math.max(0, Math.min(1, me.health - i));
-      const cx = 8 + i * 24;
-      const cy = 7;
+      const cx = 10 + i * 28;
+      const cy = 13;
       ctx.beginPath();
-      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
       ctx.fillStyle = COLOR.hpEmpty;
       ctx.fill();
       ctx.strokeStyle = COLOR.hpBorder;
@@ -41,18 +42,24 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       ctx.stroke();
       if (hp >= 1) {
         ctx.beginPath();
-        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
         ctx.fillStyle = COLOR.hp;
+        ctx.shadowColor = '#2d6e2d';
+        ctx.shadowBlur = 6;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = COLOR.hpHighlight;
         ctx.lineWidth = 1;
         ctx.stroke();
       } else if (hp === 0.5) {
         ctx.beginPath();
-        ctx.arc(cx, cy, 6, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.arc(cx, cy, 8, Math.PI * 0.5, Math.PI * 1.5);
         ctx.closePath();
         ctx.fillStyle = COLOR.hp;
+        ctx.shadowColor = '#2d6e2d';
+        ctx.shadowBlur = 6;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = COLOR.hpHighlight;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -75,28 +82,13 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
         </span>
       </div>
 
-      {/* AP & Debuffs */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <div>
-          <div style={styles.label}>ACTION POINTS</div>
-          <div style={styles.apRow}>
-            {[0, 1].map(i => (
-              <div key={i} style={{ ...styles.apDot, background: i < me.actionPoints ? COLOR.accent : COLOR.dim, boxShadow: i < me.actionPoints ? `0 0 6px ${COLOR.accent}88` : 'none' }} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <div style={styles.label}>DEBUFFS</div>
-          <div style={styles.debuffRow}>
-            {me.debuffs.length === 0
-              ? <span style={{ color: COLOR.textDim, fontSize: '11px', fontStyle: 'italic' }}></span>
-              : me.debuffs.map((d, i) => (
-                <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '55' }}>
-                  {d.type} {d.turnsLeft}
-                </span>
-              ))
-            }
-          </div>
+      {/* AP */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={styles.label}>ACTION POINTS</div>
+        <div style={styles.apRow}>
+          {[0, 1].map(i => (
+            <div key={i} style={{ ...styles.apDot, background: i < me.actionPoints ? COLOR.accent : COLOR.dim, boxShadow: i < me.actionPoints ? `0 0 6px ${COLOR.accent}88` : 'none' }} />
+          ))}
         </div>
       </div>
 
@@ -106,10 +98,28 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       {/* Health */}
       <div style={styles.label}>HEALTH</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <canvas ref={hpCanvasRef} width={80} height={14} />
-        <span style={{ color: COLOR.hp, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Cinzel', serif", letterSpacing: '1px' }}>
+        <canvas ref={hpCanvasRef} width={120} height={26} />
+        <span style={{ color: COLOR.hpHighlight, fontWeight: 'bold', fontSize: '20px', fontFamily: "'Cinzel', serif", letterSpacing: '1px', textShadow: '0 0 8px COLOR.hp' }}>
           {me.health} / 3
         </span>
+      </div>
+      
+      {/* Divider */}
+      <div style={styles.divider} />
+
+      {/* Debuffs */}
+      <div style={styles.label}>DEBUFFS</div>
+      <div style={{ minHeight: '28px', marginBottom: '12px' }}>
+        <div style={styles.debuffRow}>
+          {me.debuffs.length === 0
+            ? null
+            : me.debuffs.map((d, i) => (
+                <span key={i} style={{ ...styles.debuff, color: debuffColor(d.type), borderColor: debuffColor(d.type) + '55' }}>
+                  {d.type} {d.turnsLeft}
+                </span>
+              ))
+          }
+        </div>
       </div>
 
       {/* Divider */}
@@ -119,21 +129,21 @@ export default function GameUI({ me, isMyTurn, currentTurn }) {
       <div style={styles.section}>
         <div style={styles.label}>INVENTORY</div>
         <div style={styles.invGrid}>
-          <InvItem symbol="◆" label="Ammo" count={me.ammo} />
-          <InvItem symbol="✦" label="Bombs" count={me.bombs} />
-          <InvItem symbol="✚" label="Medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
+          <InvItem icon={<TestTube size={22} color={COLOR.accent} style={{ display: 'block' }} />} label="Ammo" count={me.ammo} />
+          <InvItem icon={<Bomb size={22} color={COLOR.accent} />} label="Bombs" count={me.bombs} />
+          <InvItem icon={<BriefcaseMedical size={22} color={COLOR.accent} />} label="Medkits" count={me.items?.filter(i => i === 'medkit').length ?? 0} />
         </div>
       </div>
     </div>
   );
 }
 
-function InvItem({ symbol, label, count }) {
+function InvItem({ icon, label, count }) {
   return (
     <div style={styles.invItem}>
-      <span style={{ color: COLOR.accent, fontSize: '14px', width: '16px' }}>{symbol}</span>
-      <span style={{ color: COLOR.textDim, fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: '6px' }}>{label}</span>
-      <span style={{ color: count > 0 ? COLOR.accent : COLOR.textDim, fontWeight: 'bold', fontSize: '14px', fontFamily: "'Spectral', serif", marginLeft: 'auto' }}>{count}</span>
+      <span style={{ width: '16px', display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <span style={{ color: COLOR.textDim, fontSize: '16px', fontFamily: "'Spectral', serif", marginLeft: '6px' }}>{label}</span>
+      <span style={{ color: count > 0 ? COLOR.accent : COLOR.textDim, fontWeight: 'bold', fontSize: '16px', fontFamily: "'Spectral', serif", marginLeft: 'auto' }}>{count}</span>
     </div>
   );
 }
@@ -161,7 +171,7 @@ const styles = {
     marginTop: '12px',
   },
   label: {
-    fontSize: '14px',
+    fontSize: '16px',
     fontWeight: 'bold',
     fontFamily: "'Cinzel', serif",
     letterSpacing: '3px',
@@ -174,8 +184,8 @@ const styles = {
     gap: '6px',
   },
   apDot: {
-    width: '16px',
-    height: '16px',
+    width: '20px',
+    height: '20px',
     borderRadius: '50%',
     transition: 'all 0.3s',
     border: `1px solid ${COLOR.border}`,
@@ -186,7 +196,7 @@ const styles = {
     flexWrap: 'wrap',
   },
   debuff: {
-    fontSize: '10px',
+    fontSize: '13px',
     padding: '2px 5px',
     border: '1px solid',
     fontFamily: "'Cinzel', serif",
@@ -202,7 +212,7 @@ const styles = {
   invItem: {
     display: 'flex',
     alignItems: 'center',
-    padding: '4px 8px',
+    padding: '6px 10px',
     background: COLOR.itemBg,
     border: `1px solid ${COLOR.itemBorder}`,
   },

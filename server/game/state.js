@@ -22,6 +22,7 @@ function createPlayer(socketId, index, spawnCell) {
     visibleCells: {},
     isAlive: true,
     actionPoints: 2,
+    direction: 'bottom',
   };
 }
 
@@ -84,7 +85,7 @@ function revealWall(player, x, y, direction) {
 
 function addDebuff(player, type, turns) {
   const existing = player.debuffs.find(d => d.type === type);
-  if (existing) existing.turnsLeft = Math.max(existing.turnsLeft, turns);
+  if (existing) existing.turnsLeft += turns;
   else player.debuffs.push({ type, turnsLeft: turns });
 }
 
@@ -234,7 +235,11 @@ function getPlayerView(gameState, socketId) {
 
       // тип и контент — реальные если в зоне, lastSeen если нет
       const type = inZone ? cell.type : (cv.lastSeenType ?? 'empty');
-      const content = inZone ? cell.content : (cv.lastSeenContent ?? null);
+      const realCell = gameState.maze.cells[cell.y][cell.x];
+      const knownMine = (cv?.knownMine || realCell.mineOwner === socketId) && !inZone;
+      const content = inZone
+        ? (realCell.content === 'mine' && realCell.mineOwner !== socketId && !cv?.knownMine ? null : realCell.content)
+        : (knownMine ? 'mine' : (cv.lastSeenContent ?? null));
       const treasureHere = inZone
         ? (gameState.treasure && !gameState.treasure.destroyed &&
           gameState.treasure.x === cell.x && gameState.treasure.y === cell.y &&
@@ -252,15 +257,21 @@ function getPlayerView(gameState, socketId) {
         type,
         content,
         treasure: treasureHere,
+        mineOwner: realCell.content === 'mine' ? realCell.mineOwner : null,
+        tileIndex: cell.tileIndex,
+        used: cell.used ?? false,
+        dugUp: cell.dugUp ?? false,
       };
     })
   );
 
-  const visiblePlayers = gameState.players.filter(p => {
-    if (!p.isAlive || p.id === socketId) return false;
-    const key = `${p.x},${p.y}`;
-    return zone.has(key) && !!visibleSet[key]?.visited;
-  });
+  const visiblePlayers = gameState.players
+    .filter(p => {
+      if (p.id === socketId) return false;
+      const key = `${p.x},${p.y}`;
+      return zone.has(key) && !!visibleSet[key]?.visited;
+    })
+    .map(p => ({ ...p, isDead: !p.isAlive }));
 
   return {
     you: player,

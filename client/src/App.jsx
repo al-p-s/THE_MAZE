@@ -22,22 +22,24 @@ const COLOR = {
   bg: '#0e0c09',
   border: '#4a3a22',
   text: '#a89070',
-  textDim: '#5a4a38',
+  textDim: '#c8c0b0',
   accent: '#c8a84b',
-  danger: '#8b2020',
+  safe: '#49d3d3',
+  danger: '#af0b0b',
   warn: '#8a6020',
   heal: '#4a7a3a',
   miss: '#aaaaaa',
-  explosion: '#8a4010',
-  debuffW: '#c8860a',
-  debuffS: '#2e6a8a',
-  debuffP: '#8b1a1a',
+  explosion: '#df470a',
+  debuffW: '#f59920',
+  debuffS: '#9534d6',
+  debuffP: '#d13333',
 };
 
 export default function App() {
   const [state, setState] = useState(INITIAL_STATE);
   const [targetId, setTargetId] = useState(null);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [mouseDir, setMouseDir] = useState('bottom');
   const pendingActionRef = useRef(null);
 
   const addEvent = useCallback((msg) => {
@@ -103,7 +105,7 @@ export default function App() {
     socket.emit(event, payload);
   }, [isMyTurn, me, gameData]);
   
-  const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y) ?? [];
+  const cellmates = gameData?.visiblePlayers?.filter(p => p.x === gameData?.you?.x && p.y === gameData?.you?.y && !p.isDead) ?? [];
   const effectiveTargetId = cellmates.find(p => p.id === targetId)?.id ?? cellmates[0]?.id ?? null;
 
   return (
@@ -119,7 +121,7 @@ export default function App() {
       {/* Canvas */}
       <div style={styles.canvasArea}>
         {state.screen === 'waiting' && <WaitingScreen />}
-        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} targetId={effectiveTargetId} />}
+        {state.screen === 'game' && <MazeCanvas gameData={gameData} myId={myId} targetId={effectiveTargetId} mouseDir={mouseDir} setMouseDir={setMouseDir} />}
         {state.screen === 'over' && <OverScreen winner={state.winner} myId={myId} reason={state.winReason} />}
       </div>
 
@@ -128,7 +130,7 @@ export default function App() {
         {state.screen === 'game' && <>
           <GameUI me={me} isMyTurn={isMyTurn} currentTurn={currentTurn} />
           <div style={styles.divider} />
-          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} />
+          <ActionPanel me={me} isMyTurn={isMyTurn} act={act} gameData={gameData} targetId={effectiveTargetId} setTargetId={setTargetId} setMouseDir={setMouseDir} />
           <div style={styles.divider} />
           <NotificationPanel notification={state.notification} />
         </>}
@@ -233,6 +235,17 @@ function formatEvent(ev, myId) {
     case 'treasure':
       if (!isMe) return null;
       return ev.action === 'dig' ? `Treasure dug up` : ev.action === 'pickup' ? `Treasure picked up` : `Treasure dropped`;
+    case 'loot': {
+      if (!isMe) return null;
+      const { loot } = ev;
+      const parts = [];
+      if (loot.ammo) parts.push(`+${loot.ammo} ammo`);
+      if (loot.mana) parts.push(`+${loot.mana} mana`);
+      if (loot.jumps) parts.push(`+${loot.jumps} jumps`);
+      if (loot.bombs) parts.push(`+${loot.bombs} bombs`);
+      if (loot.medkits) parts.push(`+${loot.medkits} medkits`);
+      return `Looted: ${parts.length ? parts.join(', ') : 'nothing'}`;
+    }
     case 'player_disconnected':
       return `A player disconnected`;
     default:
@@ -244,17 +257,17 @@ function makeNotification(ev, myId) {
   if (ev.event === 'cell_checked' && ev.playerId === myId) {
     return ev.content
       ? { text: 'DANGER!', color: COLOR.danger, sub: ev.content }
-      : { text: 'SAFE!', color: COLOR.accent };
+      : { text: 'SAFE!', color: COLOR.safe };
   }
   if (ev.event === 'wall_checked' && ev.playerId === myId) {
     return ev.isEdge
       ? { text: 'NOTHING...', color: COLOR.miss }
       : ev.hasWall
         ? { text: 'WALL!', color: COLOR.miss }
-        : { text: 'FREE!', color: COLOR.accent };
+        : { text: 'FREE!', color: COLOR.safe };
   }
   if (ev.event === 'exit_found' && ev.playerId === myId) {
-    return { text: 'EXIT DETECTED!', color: COLOR.accent };
+    return { text: 'EXIT DETECTED!', color: COLOR.safe };
   }
   if (ev.event === 'move_blocked' && ev.playerId === myId) {
     return ev.isEdge
@@ -362,7 +375,7 @@ const styles = {
     marginBottom: '16px',
   },
   waitSub: {
-    fontSize: '14px',
+    fontSize: '18px',
     color: COLOR.textDim,
     letterSpacing: '2px',
     marginBottom: '24px',
@@ -382,7 +395,7 @@ const styles = {
   },
   overBox: { textAlign: 'center', fontFamily: "'Spectral', serif" },
   overTitle: { fontSize: '56px', fontWeight: 'bold', letterSpacing: '8px' },
-  overSub: { fontSize: '14px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
+  overSub: { fontSize: '18px', color: COLOR.textDim, marginTop: '12px', letterSpacing: '2px' },
   modalOverlay: {
     position: 'fixed', inset: 0, background: COLOR.bg + 'cc', backdropFilter: 'blur(4px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,

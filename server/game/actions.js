@@ -12,6 +12,7 @@ function actionMove(gameState, socketId, direction) {
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
   const ny = player.y + dy;
+  player.direction = direction;
   const isOutside = nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height;
 
   if (cell.walls[direction] && !isOutside) {
@@ -67,6 +68,11 @@ function actionMove(gameState, socketId, direction) {
     landedCell.content = null;
     const owner = landedCell.mineOwner;
     landedCell.mineOwner = null;
+    
+    for (const p of gameState.players) {
+      const k = `${player.x},${player.y}`;
+      if (p.visibleCells[k]) p.visibleCells[k].knownMine = false;
+    }
 
     const victims = gameState.players.filter(p =>
       p.isAlive && ((p.x === player.x && p.y === player.y) || p.id === socketId)
@@ -106,6 +112,7 @@ function actionCheckWall(gameState, socketId, direction) {
   const alreadyKnown = !!player.visibleCells[wallKey]?.[direction];
   if (alreadyKnown) return { ok: true, alreadyKnown: true, isEdge: false, isExit: false, hasWall: null };
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
 
   const { dx, dy } = DIRS[direction];
   const nx = player.x + dx;
@@ -139,10 +146,10 @@ function actionUseHospital(gameState, socketId, choice) {
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
 
   const cell = getCell(gameState.maze, player.x, player.y);
-  if (!cell || cell.type !== 'hospital') return { ok: false, reason: 'not_hospital' };
+  if (!cell || cell.type !== 'hospital' || cell.used) return { ok: false, reason: 'not_hospital' };
 
   player.actionPoints -= 1;
-  cell.type = 'empty';
+  cell.used = true;
 
   if (choice === 'heal') {
     player.health = 3;
@@ -165,7 +172,7 @@ function actionUseArsenal(gameState, socketId) {
   if (!cell || cell.type !== 'arsenal') return { ok: false, reason: 'not_arsenal' };
 
   player.actionPoints -= 1;
-  cell.type = 'empty';
+  cell.used = true
 
   const roll = Math.random() < 0.5 ? 'ammo' : 'bombs';
   if (roll === 'ammo') player.ammo += 2;
@@ -188,6 +195,8 @@ function actionTreasure(gameState, socketId, action) {
     if (!onTreasureCell || !t.isBuried || t.carriedBy) return { ok: false, reason: 'cant_dig' };
     player.actionPoints -= 1;
     t.isBuried = false;
+    const cell = getCell(gameState.maze, t.x, t.y);
+    cell.dugUp = true;
     return { ok: true, action: 'dig' };
   }
 
@@ -240,6 +249,7 @@ function actionUseBomb(gameState, socketId, mode, direction) {
     if (nx < 0 || ny < 0 || nx >= gameState.maze.width || ny >= gameState.maze.height)
       return { ok: false, reason: 'outer_wall' };
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     player.bombs -= 1;
     cell.walls[direction] = false;
     getCell(gameState.maze, nx, ny).walls[OPPOSITE[direction]] = false;
@@ -260,8 +270,17 @@ function actionCheckCell(gameState, socketId, direction) {
     return { ok: false };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   const cell = getCell(gameState.maze, nx, ny);
   if (!cell) return { ok: true, content: null };
+
+  if (cell.content === 'mine') {
+    const key = `${nx},${ny}`;
+    if (!player.visibleCells[key]) {
+      player.visibleCells[key] = { top: false, right: false, bottom: false, left: false };
+    }
+    player.visibleCells[key].knownMine = true;
+  }
 
   return { ok: true, content: cell.content };
 }
@@ -285,6 +304,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
   if (player.ammo < 1) return { ok: false, reason: 'no_ammo' };
+  if (player.debuffs.some(d => d.type === 'W')) return { ok: false, reason: 'weakness' };
 
   // если передан targetId — бьём напрямую
   if (targetId) {
@@ -292,6 +312,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
     if (!target) return { ok: false, reason: 'invalid_target' };
     player.ammo -= 1;
     player.actionPoints -= 1;
+    if (direction) player.direction = direction;
     const roll = rollDice();
     const { damage, debuff, debuffTurns } = weaponResults[player.className](roll);
     target.health -= damage;
@@ -311,8 +332,9 @@ function actionAttack(gameState, socketId, direction, targetId) {
   if (!DIRS[direction]) return { ok: false };
 
   player.actionPoints -= 1;
+  if (direction) player.direction = direction;
   player.ammo -= 1;
-
+  
   // Идём по прямой до стены или игрока
   const { dx, dy } = DIRS[direction];
   let x = player.x;
@@ -325,8 +347,11 @@ function actionAttack(gameState, socketId, direction, targetId) {
     if (cell.walls[direction]) break; // стена на пути
     x += dx;
     y += dy;
-    const hit = gameState.players.find(p => p.isAlive && p.x === x && p.y === y && p.id !== socketId);
-    if (hit) { target = hit; break; }
+    const hitsInCell = gameState.players.filter(p => p.isAlive && p.x === x && p.y === y && p.id !== socketId);
+    if (hitsInCell.length > 0) {
+      target = hitsInCell[Math.floor(Math.random() * hitsInCell.length)];
+      break;
+    }
   }
 
   if (!target) {
@@ -357,6 +382,7 @@ function actionAttack(gameState, socketId, direction, targetId) {
 function actionMelee(gameState, socketId, targetId) {
   const player = gameState.players.find(p => p.id === socketId);
   if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
+  if (player.debuffs.some(d => d.type === 'W')) return { ok: false, reason: 'weakness' };
 
   const target = targetId
     ? gameState.players.find(p => p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y)
@@ -383,11 +409,58 @@ function actionMelee(gameState, socketId, targetId) {
   return { ok: true, hit: true, roll, damage: 0.5, targetId: target.id, died };
 }
 
+function actionLoot(gameState, socketId, targetId) {
+  const player = gameState.players.find(p => p.id === socketId);
+  if (!player || !player.isAlive || player.actionPoints < 1) return { ok: false };
+
+  const corpse = gameState.players.find(p =>
+    !p.isAlive && p.id === targetId && p.x === player.x && p.y === player.y
+  );
+  if (!corpse || corpse.looted) return { ok: false, reason: 'no_corpse' };
+
+  player.actionPoints -= 1;
+  corpse.looted = true;
+
+  const loot = {};
+
+  // ammo / mana / jumps
+  if (corpse.className === 'witch') {
+    loot.mana = corpse.mana ?? 0;
+    player.mana = (player.mana ?? 0) + loot.mana;
+    corpse.mana = 0;
+  } else if (corpse.className === 'reaper') {
+    loot.jumps = corpse.jumps ?? 0;
+    player.jumps = (player.jumps ?? 0) + loot.jumps;
+    corpse.jumps = 0;
+  } else {
+    loot.ammo = corpse.ammo ?? 0;
+    player.ammo += loot.ammo;
+    corpse.ammo = 0;
+  }
+
+  // бомбы
+  if (corpse.bombs > 0) {
+    loot.bombs = corpse.bombs;
+    player.bombs += corpse.bombs;
+    corpse.bombs = 0;
+  }
+
+  // аптечки
+  const medkits = corpse.items?.filter(i => i === 'medkit').length ?? 0;
+  if (medkits > 0) {
+    loot.medkits = medkits;
+    player.items.push(...corpse.items.filter(i => i === 'medkit'));
+    corpse.items = corpse.items.filter(i => i !== 'medkit');
+  }
+
+  return { ok: true, loot };
+}
+
 module.exports = {
   revealCell, revealWall,
   addDebuff, actionMove, actionCheckWall,
   actionUseHospital, actionUseArsenal,
   actionAttack, actionTreasure, actionUseBomb,
   actionCheckCell, actionUseMedkit,
-  actionMelee,
+  actionMelee, actionLoot,
 };

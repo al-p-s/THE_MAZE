@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 const WALL = 3;
 
@@ -14,27 +14,164 @@ const COLOR = {
   arsenal: '#ffaa00',
   hospital: '#ff4488',
   treasure: '#ffd700',
-  mine: '#ff2200',
+  mine: '#df1e00',
   grid: '#1e1e1e',
+  wallDash: '#3a3a3a44',
+  gridLine: '#000',
+  deadPlayer: '#555',
+  deadStroke: '#333',
+  hpEmpty: '#1a0a0a',
+  hpMe: '#5da844',
+  hpEnemy: '#af0b0b',
+  mineFill: '#ff220033',
+  mineLabel: '#ffffffd0',
+  fogOverlay: 'rgba(0,0,0,0.55)',
+  canvasBorder: '#222',
 };
 
-export default function MazeCanvas({ gameData, targetId }) {
+const FLOOR_TILES = Array.from({length: 9}, (_, i) => `/tiles/floor/0${i+1}_tile.png`);
+const HOSPITAL_TILE_SRC = '/tiles/hospital.png';
+const HOSPITAL_USED_TILE_SRC = '/tiles/hospital_used.png';
+const ARSENAL_TILE_SRC = '/tiles/arsenal.png';
+const ARSENAL_USED_TILE_SRC = '/tiles/arsenal_used.png';
+const TREASURE_TILE_SRC = '/tiles/treasure_tile.png';
+const TREASURE_USED_TILE_SRC = '/tiles/treasure_tile_used.png';
+
+
+const SPRITES = {
+  mine: {
+    on: '/sprites/mine/mine_on.png',
+    off: '/sprites/mine/mine_off.png',
+  },
+  treasure: {
+    treasure: '/sprites/treasure/treasure.png',
+  },
+  pinkerton: {
+    top: '/sprites/pinkerton/02_back.png',
+    bottom: '/sprites/pinkerton/02_front.png',
+    left: '/sprites/pinkerton/02_left.png',
+    right: '/sprites/pinkerton/02_right.png',
+    top_left: '/sprites/pinkerton/02_back_left.png',
+    top_right: '/sprites/pinkerton/02_back_right.png',
+    bottom_left: '/sprites/pinkerton/02_front_left.png',
+    bottom_right: '/sprites/pinkerton/02_front_right.png',
+  },
+};
+
+export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMouseDir }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const spritesRef = useRef({});
+  const floorTilesRef = useRef([]);
+
+  const hospitalTileRef = useRef(null);
+  const hospitalUsedTileRef = useRef(null);
+
+  const arsenalTileRef = useRef(null);
+  const arsenalUsedTileRef = useRef(null);
+
+  const treasureTileRef = useRef(null);
+  const treasureTileUsedRef = useRef(null);
+
+  const [, setForceUpdate] = useState(0);
 
   useEffect(() => {
-    if (!gameData || !containerRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { maze } = gameData;
-    const { offsetWidth, offsetHeight } = containerRef.current;
-    const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
-    const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
-    canvas.width = maze.width * CELL;
-    canvas.height = maze.height * CELL;
-    const ctx = canvas.getContext('2d');
-    draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId);
-  }, [gameData, targetId]);
+    for (const [cls, dirs] of Object.entries(SPRITES)) {
+      spritesRef.current[cls] = {};
+      for (const [dir, src] of Object.entries(dirs)) {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => setForceUpdate(n => n + 1);
+        spritesRef.current[cls][dir] = img;
+      }
+    }
+    floorTilesRef.current = FLOOR_TILES.map(src => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => setForceUpdate(n => n + 1);
+      return img;
+    });
+
+    const hImg = new Image();
+    hImg.src = HOSPITAL_TILE_SRC;
+    hImg.onload = () => setForceUpdate(n => n + 1);
+    hospitalTileRef.current = hImg;
+
+    const huImg = new Image();
+    huImg.src = HOSPITAL_USED_TILE_SRC;
+    huImg.onload = () => setForceUpdate(n => n + 1);
+    hospitalUsedTileRef.current = huImg;
+
+    const aImg = new Image();
+    aImg.src = ARSENAL_TILE_SRC;
+    aImg.onload = () => setForceUpdate(n => n + 1);
+    arsenalTileRef.current = aImg;
+
+    const auImg = new Image();
+    auImg.src = ARSENAL_USED_TILE_SRC;
+    auImg.onload = () => setForceUpdate(n => n + 1);
+    arsenalUsedTileRef.current = auImg;
+
+    const ttImg = new Image();
+    ttImg.src = TREASURE_TILE_SRC;
+    ttImg.onload = () => setForceUpdate(n => n + 1);
+    treasureTileRef.current = ttImg;
+
+    const ttuImg = new Image();
+    ttuImg.src = TREASURE_USED_TILE_SRC;
+    ttuImg.onload = () => setForceUpdate(n => n + 1);
+    treasureTileUsedRef.current = ttuImg;
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const canvas = canvasRef.current;
+      if (!canvas || !gameData?.you) return;
+      const rect = canvas.getBoundingClientRect();
+      const { you, maze } = gameData;
+      const CELL = canvas.width / maze.width;
+      const cx = (you.x + 0.5) * CELL + rect.left;
+      const cy = (you.y + 0.5) * CELL + rect.top;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      let dir;
+      if (angle > -22.5 && angle <= 22.5) dir = 'right';
+      else if (angle > 22.5 && angle <= 67.5) dir = 'bottom_right';
+      else if (angle > 67.5 && angle <= 112.5) dir = 'bottom';
+      else if (angle > 112.5 && angle <= 157.5) dir = 'bottom_left';
+      else if (angle > 157.5 || angle <= -157.5) dir = 'left';
+      else if (angle > -157.5 && angle <= -112.5) dir = 'top_left';
+      else if (angle > -112.5 && angle <= -67.5) dir = 'top';
+      else dir = 'top_right';
+      setMouseDir(dir);
+    };
+    window.addEventListener('mousemove', handler);
+    return () => window.removeEventListener('mousemove', handler);
+  }, [gameData, setMouseDir]);
+
+  const animRef = useRef(null);
+  useEffect(() => {
+    const loop = () => {
+      animRef.current = requestAnimationFrame(loop);
+      if (!canvasRef.current || !containerRef.current || !gameData) return;
+      const canvas = canvasRef.current;
+      const { maze } = gameData;
+      const { offsetWidth, offsetHeight } = containerRef.current;
+      const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
+      const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
+      if (canvas.width !== maze.width * CELL) {
+        canvas.width = maze.width * CELL;
+        canvas.height = maze.height * CELL;
+      }
+      const ctx = canvas.getContext('2d');
+      draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
+        floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
+        arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current);
+    };
+    animRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [gameData, targetId, myId, mouseDir]);
 
   if (!gameData) return null;
 
@@ -45,7 +182,7 @@ export default function MazeCanvas({ gameData, targetId }) {
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile) {
   const { you, maze, visiblePlayers, exit } = gameData;
 
   // Clear
@@ -55,14 +192,14 @@ function draw(ctx, gameData, W, H, CELL, targetId) {
   // Draw cells and walls
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellFloor(ctx, cell, CELL, exit);
+      drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, sprites);
 
   for (const row of maze.cells)
     for (const cell of row)
       drawCellWalls(ctx, cell, CELL);
 
   // Draw player
-  if (you) drawPlayer(ctx, you, CELL, visiblePlayers, targetId);
+  if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId, mouseDir);
 }
 
 function drawExit(ctx, px, py, CELL, direction) {
@@ -86,7 +223,7 @@ function drawExit(ctx, px, py, CELL, direction) {
   ctx.stroke();
 }
 
-function drawCellFloor(ctx, cell, CELL, exit) {
+function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, sprites) {
   const { x, y, hidden, type, content } = cell;
   const px = x * CELL;
   const py = y * CELL;
@@ -99,20 +236,106 @@ function drawCellFloor(ctx, cell, CELL, exit) {
   }
 
   // Floor
-  ctx.fillStyle = cell.inZone ? COLOR.floorVisible : COLOR.floor;
-  ctx.fillRect(px, py, CELL, CELL);
+  const tileImg = floorTiles?.[cell.tileIndex ?? 0];
+  if (tileImg?.complete && tileImg.naturalWidth > 0) {
+    ctx.drawImage(tileImg, px, py, CELL, CELL);
+    if (!cell.inZone) {
+      ctx.fillStyle = COLOR.fogOverlay;
+      ctx.fillRect(px, py, CELL, CELL);
+    }
+  } else {
+    ctx.fillStyle = COLOR.floor;
+    ctx.fillRect(px, py, CELL, CELL);
+  }
+  // тонкая сетка
+  ctx.strokeStyle = COLOR.gridLine;
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(px, py, CELL, CELL);
 
   if (exit && exit.x === x && exit.y === y) {
     drawExit(ctx, px, py, CELL, exit.direction);
   }
 
-  // POI / content tint
-  if (type === 'exit') drawTile(ctx, px, py, COLOR.exit, '⬆', 'ВЫХОД', CELL);
-  if (type === 'arsenal') drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'АРСЕНАЛ', CELL, cell.inZone);
-  if (type === 'hospital') drawTile(ctx, px, py, COLOR.hospital, '+', 'ГОСПИТАЛЬ', CELL, cell.inZone);
-  if (content === 'mine' && cell.inZone) drawTile(ctx, px, py, COLOR.mine, '✕', 'МИНА', CELL);
-  if (cell.treasure) {
-    drawTreasure(ctx, px, py, CELL, cell.treasure.isBuried, cell.inZone);
+  // POIs
+  if (type === 'arsenal') {
+    const tile = cell.used ? arsenalUsedTile : arsenalTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    } else {
+      drawTile(ctx, px, py, COLOR.arsenal, '⚙', 'ARSENAL', CELL, cell.inZone);
+    }
+  }
+  if (type === 'hospital') {
+    const tile = cell.used ? hospitalUsedTile : hospitalTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    } else {
+      drawTile(ctx, px, py, COLOR.hospital, '+', 'HOSPITAL', CELL, cell.inZone);
+    }
+  }
+  if (content === 'mine') {
+    const pulse = Math.floor(Date.now() / 500) % 2 === 0;
+    const mineImg = pulse ? sprites?.mine?.on : sprites?.mine?.off;
+    ctx.globalAlpha = cell.inZone ? 1 : 0.4;
+    if (mineImg?.complete && mineImg.naturalWidth > 0) {
+      const size = CELL * 0.25;
+
+      ctx.drawImage(
+        mineImg,
+        px + (CELL - size) / 2,
+        py + (CELL - size) / 2 + CELL * 0.3,
+        size,
+        size
+      );
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (cell.dugUp) {
+    const tile = treasureUsedTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
+  } else if (cell.treasure && cell.treasure.isBuried) {
+    const tile = treasureTile;
+    if (tile?.complete && tile.naturalWidth > 0) {
+      ctx.drawImage(tile, px, py, CELL, CELL);
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
+  }
+
+  if (cell.treasure && !cell.treasure.isBuried) {
+    const chest = sprites?.treasure?.treasure;
+    if (chest?.complete && chest.naturalWidth > 0) {
+      const size = CELL * 0.35;
+      ctx.filter = 'saturate(0.8) brightness(0.9)';
+      // ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 6;
+      ctx.drawImage(chest, px + (CELL - size) / 2, py + (CELL - size) / 2 + CELL * 0.02, size, size);
+      ctx.filter = 'none';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      if (!cell.inZone) {
+        ctx.fillStyle = COLOR.fogOverlay;
+        ctx.fillRect(px, py, CELL, CELL);
+      }
+    }
   }
 }
 
@@ -153,7 +376,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
   } else if (cell.walls.top === null) {
     // checked but unknown — subtle dotted
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
     ctx.setLineDash([]);
@@ -164,7 +387,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
   } else if (cell.walls.right === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
@@ -175,7 +398,7 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
   } else if (cell.walls.bottom === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
@@ -186,14 +409,14 @@ function drawWalls(ctx, cell, px, py, CELL) {
     ctx.strokeStyle = COLOR.wall;
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
   } else if (cell.walls.left === null) {
-    ctx.strokeStyle = COLOR.wall + '44';
+    ctx.strokeStyle = COLOR.wallDash;
     ctx.setLineDash([4, 6]);
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
     ctx.setLineDash([]);
   }
 }
 
-function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
+function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = null, mouseDir = 'bottom') {
   // группируем visiblePlayers по клеткам
   const byCell = {};
   for (const p of visiblePlayers) {
@@ -205,150 +428,236 @@ function drawPlayer(ctx, you, CELL, visiblePlayers = [], targetId = null) {
   // рисуем себя
   const myKey = `${you.x},${you.y}`;
   const myCellmates = byCell[myKey] || [];
-  const myTotal = myCellmates.length + 1;
-  const myPositions = getPositions(you.x, you.y, CELL, myTotal);
-  drawSinglePlayer(ctx, you, CELL, COLOR.player, myPositions[0], true);
+  const baseCx = you.x * CELL + CELL / 2;
+  const baseCy = you.y * CELL + CELL * 0.65;
+  const youWithDir = { ...you, direction: mouseDir };
+  drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, { cx: baseCx, cy: baseCy }, true, sprites, false, true);
+
+  const enemyPositions = [
+    { dx: 0,    dy: -0.3 },  // сверху
+    { dx: 0.3,  dy: 0 },     // справа
+    { dx: -0.3, dy: 0 },     // слева
+    { dx: 0.3,  dy: -0.3 },  // верхний-правый
+    { dx: -0.3, dy: -0.3 },  // верхний-левый
+    { dx: 0.3,  dy: 0.3 },   // нижний-правый
+    { dx: -0.3, dy: 0.3 },   // нижний-левый
+  ];
+
   myCellmates.forEach((p, i) => {
-    drawSinglePlayer(ctx, p, CELL, '#ff6666', myPositions[i + 1], false, p.id === targetId);
+    const offset = enemyPositions[i] ?? enemyPositions[0];
+    const pos = {
+      cx: you.x * CELL + CELL / 2 + offset.dx * CELL,
+      cy: you.y * CELL + CELL * 0.4 + offset.dy * CELL,
+    };
+    drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, pos, false, sprites, p.id === targetId, false);
   });
 
   // рисуем остальных visible (не в моей клетке)
   for (const [key, players] of Object.entries(byCell)) {
     if (key === myKey) continue;
-    const positions = getPositions(players[0].x, players[0].y, CELL, players.length);
+    const enemyPositions = [
+      { dx: 0,    dy: -0.3 },
+      { dx: 0.3,  dy: 0 },
+      { dx: -0.3, dy: 0 },
+      { dx: 0.3,  dy: -0.3 },
+      { dx: -0.3, dy: -0.3 },
+      { dx: 0.3,  dy: 0.3 },
+      { dx: -0.3, dy: 0.3 },
+    ];
+    const cellCx = players[0].x * CELL + CELL / 2;
+    const cellCy = players[0].y * CELL + CELL * 0.4;
+    const positions = players.length === 1
+      ? [{ cx: cellCx, cy: players[0].y * CELL + CELL * 0.4 - CELL * 0.3 }]
+      : players.map((_, i) => ({
+          cx: cellCx + (enemyPositions[i]?.dx ?? 0) * CELL,
+          cy: cellCy + (enemyPositions[i]?.dy ?? 0) * CELL,
+        }));
     players.forEach((p, i) => {
-      drawSinglePlayer(ctx, p, CELL, '#ff6666', positions[i], false, p.id === targetId);
+      drawSinglePlayer(ctx, p, CELL, COLOR.enemyPlayer, positions[i], false, sprites, p.id === targetId, false);
     });
   }
 }
 
-function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, isTarget = false) {
+function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, isTarget = false, isMe = false){
   const { cx, cy } = pos;
   const r = CELL * 0.15;
+  const isDead = player.isDead;
 
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  if (isTarget) {
+  const img = sprites?.[player.className]?.[player.direction ?? 'bottom'];
+  if (!isDead && img?.complete && img.naturalWidth > 0) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.filter = 'saturate(0.6)';
+    const offsetY = r * 0.7;
+    ctx.drawImage(img, cx - r * 1.0, cy - r * 1.0 + offsetY, r * 2.0, r * 2.0);
+    ctx.filter = 'none';
+  } else {
+    ctx.globalAlpha = isDead ? 0.5 : 1;
+    ctx.fillStyle = isDead ? COLOR.deadPlayer : color;
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff2200';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isDead ? COLOR.deadStroke : COLOR.gridLine;
+    ctx.lineWidth = isDead ? 1 : 3;
     ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  if (isDead) {
+    ctx.strokeStyle = COLOR.deadPlayer;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.6, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.6, cy + r * 0.6);
+    ctx.moveTo(cx + r * 0.6, cy - r * 0.6);
+    ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
+    ctx.stroke();
+    return; // не рисуем хелсбар и клад
+  }
+
+  if (isTarget) {
+    const spriteCy = cy + r * 0.7;
+    const s = r * 0.4;
+    ctx.strokeStyle = COLOR.hpEnemy;
+    ctx.lineWidth = 2;
+
+    // круг
+    ctx.beginPath();
+    ctx.arc(cx, spriteCy, s, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // крестик
+    const gap = s * 0.3;
+    // горизонталь
+    ctx.beginPath();
+    ctx.moveTo(cx - s - s * 0.3, spriteCy);
+    ctx.lineTo(cx - gap, spriteCy);
+    ctx.moveTo(cx + gap, spriteCy);
+    ctx.lineTo(cx + s + s * 0.3, spriteCy);
+    ctx.stroke();
+
+    // вертикаль
+    ctx.beginPath();
+    ctx.moveTo(cx, spriteCy - s - s * 0.3);
+    ctx.lineTo(cx, spriteCy - gap);
+    ctx.moveTo(cx, spriteCy + gap);
+    ctx.lineTo(cx, spriteCy + s + s * 0.3);
+    ctx.stroke();
   }
 
   if (player.hasTreasure) {
+    const barW = r * 1.5;
+    const hpX = cx - barW / 2;
+    const hpY = cy;
+
     ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${r * 1.3}px "Courier New"`;
+    ctx.font = `bold ${r * 0.7}px "Spectral"`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('◆', cx, cy - r - r * 0.5);
+    ctx.shadowColor = COLOR.treasure;
+    ctx.shadowBlur = 8;
+    ctx.fillText(
+      '◆',
+      hpX + barW / 2,  // центр HP-бара
+      hpY - r * 0.01   // немного выше полоски
+    );
+    ctx.shadowBlur = 0;
   }
 
-  drawHealthBar(ctx, cx, cy, r, player.health);
+  drawHealthBar(ctx, cx, cy, r, player.health, isMe);
 }
 
-function drawHealthBar(ctx, cx, cy, r, health) {
+function drawHealthBar(ctx, cx, cy, r, health, isMe) {
+  const barW = r * 1.5;
+  const barH = r * 0.2;
+  const x = cx - barW / 2;
+  const y = cy - r * 2 + r * 1.95;
+
+  const segW = barW / 3;
+
   for (let i = 0; i < 3; i++) {
     const hp = Math.max(0, Math.min(1, health - i));
-    const spacing = r * 0.6;
-    const dotX = cx - spacing + i * spacing;
-    const dotY = cy - r * 0.8;
+    const sx = x + i * segW;
 
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, r * 0.33, 0, Math.PI * 2);
-    ctx.fillStyle = '#333';
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // фон
+    ctx.fillStyle = '#1a0a0a';
+    ctx.fillRect(sx + 1, y, segW - 2, barH);
 
+    // заполнение
     if (hp >= 1) {
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, r * 0.33, 0, Math.PI * 2);
-      ctx.fillStyle = '#cc3333';
-      ctx.fill();
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = isMe ? COLOR.hpMe : COLOR.hpEnemy;
+      ctx.fillRect(sx + 1, y, segW - 2, barH);
     } else if (hp === 0.5) {
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, r * 0.33, Math.PI * 0.5, Math.PI * 1.5);
-      ctx.closePath();
-      ctx.fillStyle = '#cc3333';
-      ctx.fill();
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = isMe ? COLOR.hpMe : COLOR.hpEnemy;
+      ctx.fillRect(sx + 1, y, (segW - 2) / 2, barH);
     }
+
+    // граница сегмента
+    ctx.strokeStyle = COLOR.gridLine;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx, y, segW, barH);
   }
 }
 
-function getPositions(cellX, cellY, CELL, total) {
-  const baseCx = cellX * CELL + CELL / 2;
-  const baseCy = cellY * CELL + CELL / 2;
-  if (total === 1) return [{ cx: baseCx, cy: baseCy }];
-  const radius = CELL * 0.28;
-  return Array.from({ length: total }, (_, i) => {
-    const angle = (2 * Math.PI * i) / total - Math.PI / 2;
-    return {
-      cx: baseCx + radius * Math.cos(angle),
-      cy: baseCy + radius * Math.sin(angle),
-    };
-  });
-}
+// function getPositions(cellX, cellY, CELL, total) {
+//   const baseCx = cellX * CELL + CELL / 2;
+//   const baseCy = cellY * CELL + CELL / 2;
+//   if (total === 1) return [{ cx: baseCx, cy: baseCy }];
+//   const radius = CELL * 0.28;
+//   return Array.from({ length: total }, (_, i) => {
+//     const angle = (2 * Math.PI * i) / total - Math.PI / 2;
+//     return {
+//       cx: baseCx + radius * Math.cos(angle),
+//       cy: baseCy + radius * Math.sin(angle),
+//     };
+//   });
+// }
 
-function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
-  const cx = px + CELL / 2;
-  const cy = py + CELL / 2;
-  const r = CELL * 0.25;
-  ctx.globalAlpha = active ? 1 : 0.4;;
+// function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
+//   const cx = px + CELL / 2;
+//   const cy = py + CELL / 2;
+//   const r = CELL * 0.25;
+//   ctx.globalAlpha = active ? 1 : 0.4;;
 
-  if (isBuried) {
-    // пунктирный кружок
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = COLOR.treasure + '88';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = COLOR.treasure + '33';
-    ctx.fill();
-    ctx.fillStyle = COLOR.treasure + '66';
-    ctx.font = `${CELL * 0.18}px "Courier New"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('BURIED', cx, cy);
-  } else {
-    // solid кружок
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = COLOR.treasure + '33';
-    ctx.fill();
-    ctx.strokeStyle = COLOR.treasure;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = COLOR.treasure;
-    ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('◆', cx, cy);
-  }
+//   if (isBuried) {
+//     // пунктирный кружок
+//     ctx.beginPath();
+//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
+//     ctx.strokeStyle = COLOR.treasure + '88';
+//     ctx.lineWidth = 2;
+//     ctx.setLineDash([4, 4]);
+//     ctx.stroke();
+//     ctx.setLineDash([]);
+//     ctx.fillStyle = COLOR.treasure + '33';
+//     ctx.fill();
+//     ctx.fillStyle = COLOR.treasure + '66';
+//     ctx.font = `${CELL * 0.18}px "Courier New"`;
+//     ctx.textAlign = 'center';
+//     ctx.textBaseline = 'middle';
+//     ctx.fillText('BURIED', cx, cy);
+//   } else {
+//     // solid кружок
+//     ctx.beginPath();
+//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
+//     ctx.fillStyle = COLOR.treasure + '33';
+//     ctx.fill();
+//     ctx.strokeStyle = COLOR.treasure;
+//     ctx.lineWidth = 2;
+//     ctx.stroke();
+//     ctx.fillStyle = COLOR.treasure;
+//     ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
+//     ctx.textAlign = 'center';
+//     ctx.textBaseline = 'middle';
+//     ctx.fillText('◆', cx, cy);
+//   }
 
-  ctx.globalAlpha = 1;
-}
+//   ctx.globalAlpha = 1;
+// }
 
 const styles = {
   canvas: {
     display: 'block',
-    border: '1px solid #222',
+    border: `1px solid ${COLOR.canvasBorder}`,
     imageRendering: 'pixelated',
     maxWidth: '100%',
     maxHeight: '100%',
