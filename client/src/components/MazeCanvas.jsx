@@ -37,6 +37,13 @@ const ARSENAL_USED_TILE_SRC = '/tiles/arsenal_used.png';
 const TREASURE_TILE_SRC = '/tiles/treasure_tile.png';
 const TREASURE_USED_TILE_SRC = '/tiles/treasure_tile_used.png';
 
+const OUTER_WALL_SRCS = {
+  left: '/walls/wall_left.png',
+  right: '/walls/wall_right.png',
+  top: '/walls/wall_top.png',
+  bottom: '/walls/wall_bottom.png',
+};
+
 
 const SPRITES = {
   mine: {
@@ -73,6 +80,8 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const treasureTileRef = useRef(null);
   const treasureTileUsedRef = useRef(null);
 
+  const outerWallsRef = useRef({});
+
   const [, setForceUpdate] = useState(0);
 
   useEffect(() => {
@@ -84,6 +93,12 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
         img.onload = () => setForceUpdate(n => n + 1);
         spritesRef.current[cls][dir] = img;
       }
+    }
+    for (const [key, src] of Object.entries(OUTER_WALL_SRCS)) {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => setForceUpdate(n => n + 1);
+      outerWallsRef.current[key] = img;
     }
     floorTilesRef.current = FLOOR_TILES.map(src => {
       const img = new Image();
@@ -167,7 +182,8 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       const ctx = canvas.getContext('2d');
       draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
         floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
-        arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current);
+        arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current,
+        outerWallsRef.current);
     };
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
@@ -182,8 +198,11 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   );
 }
 
-function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile) {
+function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles,
+  hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, outerWalls) {
   const { you, maze, visiblePlayers, exit } = gameData;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // Clear
   ctx.fillStyle = COLOR.bg;
@@ -196,7 +215,7 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
 
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellWalls(ctx, cell, CELL);
+      drawCellWalls(ctx, cell, CELL, outerWalls, maze.width, maze.height);
 
   // Draw player
   if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId, mouseDir);
@@ -339,11 +358,11 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
   }
 }
 
-function drawCellWalls(ctx, cell, CELL) {
+function drawCellWalls(ctx, cell, CELL, outerWalls, mazeW, mazeH) {
   if (!cell.walls) return;
   const px = cell.x * CELL;
   const py = cell.y * CELL;
-  drawWalls(ctx, cell, px, py, CELL);
+  drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH, cell.inZone);
 }
 
 function drawTile(ctx, px, py, color, icon, label, CELL, active = true) {
@@ -364,55 +383,84 @@ function drawTile(ctx, px, py, color, icon, label, CELL, active = true) {
   ctx.fillText(label, px + CELL / 2, py + CELL / 2 + CELL * 0.22);
 }
 
-function drawWalls(ctx, cell, px, py, CELL) {
+function drawTiledWall(ctx, img, x, y, w, h) {
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight;
+  if (w < h) {
+    const tileH = Math.round(w * sh / sw);
+    for (let ty = y; ty < y + h; ty += tileH) {
+      const drawH = Math.min(tileH, y + h - ty);
+      const srcH = Math.round(drawH * sh / tileH);
+      ctx.drawImage(img, 0, 0, sw, srcH, x, ty, w, drawH);
+    }
+  } else {
+    const tileW = Math.round(h * sw / sh);
+    for (let tx = x; tx < x + w; tx += tileW) {
+      const drawW = Math.min(tileW, x + w - tx);
+      const srcW = Math.round(drawW * sw / tileW);
+      ctx.drawImage(img, 0, 0, srcW, sh, tx, y, drawW, h);
+    }
+  }
+}
+
+function drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH) {
   if (!cell.walls) return;
+
+  const ready = (img) => img?.complete && img.naturalWidth > 0;
+  const wt = Math.round(CELL * 1);
+
+  const isOuterSide = {
+    top:    cell.y === 0,
+    bottom: cell.y === mazeH - 1,
+    left:   cell.x === 0,
+    right:  cell.x === mazeW - 1,
+  };
 
   ctx.lineWidth = WALL;
   ctx.lineCap = 'square';
 
-  // top
-  if (cell.walls.top === true) {
-    ctx.strokeStyle = COLOR.wall;
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
-  } else if (cell.walls.top === null) {
-    // checked but unknown — subtle dotted
-    ctx.strokeStyle = COLOR.wallDash;
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); ctx.stroke();
-    ctx.setLineDash([]);
-  }
+  for (const dir of ['top', 'right', 'bottom', 'left']) {
+    const wallVal = cell.walls[dir];
+    if (wallVal === null) {
+      // пунктир — как было
+      ctx.strokeStyle = COLOR.wallDash;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      if (dir === 'top') { ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); }
+      if (dir === 'right') { ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); }
+      if (dir === 'bottom') { ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); }
+      if (dir === 'left') { ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      continue;
+    }
 
-  // right
-  if (cell.walls.right === true) {
-    ctx.strokeStyle = COLOR.wall;
-    ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
-  } else if (cell.walls.right === null) {
-    ctx.strokeStyle = COLOR.wallDash;
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
-    ctx.setLineDash([]);
-  }
+    if (wallVal !== true) continue; // false = нет стены
 
-  // bottom
-  if (cell.walls.bottom === true) {
-    ctx.strokeStyle = COLOR.wall;
-    ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
-  } else if (cell.walls.bottom === null) {
-    ctx.strokeStyle = COLOR.wallDash;
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // left
-  if (cell.walls.left === true) {
-    ctx.strokeStyle = COLOR.wall;
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
-  } else if (cell.walls.left === null) {
-    ctx.strokeStyle = COLOR.wallDash;
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); ctx.stroke();
-    ctx.setLineDash([]);
+    if (isOuterSide[dir] && ready(outerWalls?.[dir])) {
+      const img = outerWalls[dir];
+      if (dir === 'left') {
+        if (dir === 'left') drawTiledWall(ctx, img, px, py, wt, CELL);
+      }
+      if (dir === 'right') {
+        if (dir === 'right') drawTiledWall(ctx, img, px + CELL - wt, py, wt, CELL);
+      }
+      if (dir === 'top') {
+        if (dir === 'top') drawTiledWall(ctx, img, px, py, CELL, wt);
+      }
+      if (dir === 'bottom') {
+        if (dir === 'bottom') drawTiledWall(ctx, img, px, py + CELL - wt, CELL, wt);
+      }
+    } else {
+      // обычная линия
+      ctx.strokeStyle = COLOR.wall;
+      ctx.beginPath();
+      if (dir === 'left') { ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); }
+      if (dir === 'right') { ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); }
+      if (dir === 'top') { ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); }
+      if (dir === 'bottom') { ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); }
+      ctx.stroke();
+    }
   }
 }
 
@@ -434,13 +482,13 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   drawSinglePlayer(ctx, youWithDir, CELL, COLOR.player, { cx: baseCx, cy: baseCy }, true, sprites, false, true);
 
   const enemyPositions = [
-    { dx: 0,    dy: -0.3 },  // сверху
-    { dx: 0.3,  dy: 0 },     // справа
-    { dx: -0.3, dy: 0 },     // слева
-    { dx: 0.3,  dy: -0.3 },  // верхний-правый
-    { dx: -0.3, dy: -0.3 },  // верхний-левый
-    { dx: 0.3,  dy: 0.3 },   // нижний-правый
-    { dx: -0.3, dy: 0.3 },   // нижний-левый
+    { dx: 0,    dy: -0.3 }, // сверху
+    { dx: 0.3,  dy: 0 }, // справа
+    { dx: -0.3, dy: 0 }, // слева
+    { dx: 0.3,  dy: -0.3 }, // верхний-правый
+    { dx: -0.3, dy: -0.3 }, // верхний-левый
+    { dx: 0.3,  dy: 0.3 }, // нижний-правый
+    { dx: -0.3, dy: 0.3 }, // нижний-левый
   ];
 
   myCellmates.forEach((p, i) => {
@@ -456,12 +504,12 @@ function drawPlayer(ctx, you, CELL, sprites, visiblePlayers = [], targetId = nul
   for (const [key, players] of Object.entries(byCell)) {
     if (key === myKey) continue;
     const enemyPositions = [
-      { dx: 0,    dy: -0.3 },
-      { dx: 0.3,  dy: 0 },
+      { dx: 0, dy: -0.3 },
+      { dx: 0.3, dy: 0 },
       { dx: -0.3, dy: 0 },
-      { dx: 0.3,  dy: -0.3 },
+      { dx: 0.3, dy: -0.3 },
       { dx: -0.3, dy: -0.3 },
-      { dx: 0.3,  dy: 0.3 },
+      { dx: 0.3, dy: 0.3 },
       { dx: -0.3, dy: 0.3 },
     ];
     const cellCx = players[0].x * CELL + CELL / 2;
@@ -558,8 +606,8 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
     ctx.shadowBlur = 8;
     ctx.fillText(
       '◆',
-      hpX + barW / 2,  // центр HP-бара
-      hpY - r * 0.01   // немного выше полоски
+      hpX + barW / 2, // центр HP-бара
+      hpY - r * 0.01 // немного выше полоски
     );
     ctx.shadowBlur = 0;
   }
@@ -599,66 +647,11 @@ function drawHealthBar(ctx, cx, cy, r, health, isMe) {
   }
 }
 
-// function getPositions(cellX, cellY, CELL, total) {
-//   const baseCx = cellX * CELL + CELL / 2;
-//   const baseCy = cellY * CELL + CELL / 2;
-//   if (total === 1) return [{ cx: baseCx, cy: baseCy }];
-//   const radius = CELL * 0.28;
-//   return Array.from({ length: total }, (_, i) => {
-//     const angle = (2 * Math.PI * i) / total - Math.PI / 2;
-//     return {
-//       cx: baseCx + radius * Math.cos(angle),
-//       cy: baseCy + radius * Math.sin(angle),
-//     };
-//   });
-// }
-
-// function drawTreasure(ctx, px, py, CELL, isBuried, active = true) {
-//   const cx = px + CELL / 2;
-//   const cy = py + CELL / 2;
-//   const r = CELL * 0.25;
-//   ctx.globalAlpha = active ? 1 : 0.4;;
-
-//   if (isBuried) {
-//     // пунктирный кружок
-//     ctx.beginPath();
-//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-//     ctx.strokeStyle = COLOR.treasure + '88';
-//     ctx.lineWidth = 2;
-//     ctx.setLineDash([4, 4]);
-//     ctx.stroke();
-//     ctx.setLineDash([]);
-//     ctx.fillStyle = COLOR.treasure + '33';
-//     ctx.fill();
-//     ctx.fillStyle = COLOR.treasure + '66';
-//     ctx.font = `${CELL * 0.18}px "Courier New"`;
-//     ctx.textAlign = 'center';
-//     ctx.textBaseline = 'middle';
-//     ctx.fillText('BURIED', cx, cy);
-//   } else {
-//     // solid кружок
-//     ctx.beginPath();
-//     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-//     ctx.fillStyle = COLOR.treasure + '33';
-//     ctx.fill();
-//     ctx.strokeStyle = COLOR.treasure;
-//     ctx.lineWidth = 2;
-//     ctx.stroke();
-//     ctx.fillStyle = COLOR.treasure;
-//     ctx.font = `bold ${CELL * 0.28}px "Courier New"`;
-//     ctx.textAlign = 'center';
-//     ctx.textBaseline = 'middle';
-//     ctx.fillText('◆', cx, cy);
-//   }
-
-//   ctx.globalAlpha = 1;
-// }
-
 const styles = {
   canvas: {
     display: 'block',
     border: `1px solid ${COLOR.canvasBorder}`,
-    imageRendering: 'pixelated',
+    imageRendering: 'auto',
     maxWidth: '100%',
     maxHeight: '100%',
   },
