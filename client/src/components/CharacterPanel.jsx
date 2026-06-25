@@ -13,17 +13,6 @@ const COLOR = {
 };
 
 const CLASS_DATA = {
-  pinkerton: {
-    name: 'Eugene',
-    title: 'Pinkerton',
-    portrait: '/portraits/02_pinkerton.png',
-    initials: 'EG',
-    color: '#9dfff2',
-    weapon: 'Pistole',
-    passives: [
-      'WIP',
-    ],
-  },
   reaper: {
     name: 'Luther',
     title: 'Reaper',
@@ -31,6 +20,17 @@ const CLASS_DATA = {
     initials: 'LT',
     color: '#a10000',
     weapon: 'Dagger',
+    passives: [
+      'WIP',
+    ],
+  },
+  pinkerton: {
+    name: 'Eugene',
+    title: 'Pinkerton',
+    portrait: '/portraits/02_pinkerton.png',
+    initials: 'EG',
+    color: '#9dfff2',
+    weapon: 'Pistole',
     passives: [
       'WIP',
     ],
@@ -46,10 +46,10 @@ const CLASS_DATA = {
       'WIP',
     ],
   },
-  pyromaniac: {
+  obsessed: {
     name: 'Klaus',
-    title: 'Pyromaniac',
-    portrait: '/portraits/04_pyromaniac.png',
+    title: 'Obsessed',
+    portrait: '/portraits/04_obsessed.png',
     initials: 'KL',
     color: '#ff4800',
     weapon: 'Explosive pistol',
