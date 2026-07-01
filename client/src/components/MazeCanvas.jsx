@@ -10,7 +10,6 @@ const COLOR = {
   wall: '#3a3a3a',
   wallOuter: '#555',
   player: '#c8ff00',
-  exit: '#00ffcc',
   arsenal: '#ffaa00',
   hospital: '#ff4488',
   treasure: '#ffd700',
@@ -42,6 +41,13 @@ const OUTER_WALL_SRCS = {
   right: '/walls/wall_right.png',
   top: '/walls/wall_top.png',
   bottom: '/walls/wall_bottom.png',
+};
+
+const EXIT_WALL_SRCS = {
+  left: '/exits/exit_left.png',
+  right: '/exits/exit_right.png',
+  top: '/exits/exit_top.png',
+  bottom: '/exits/exit_bottom.png',
 };
 
 
@@ -81,6 +87,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
   const treasureTileUsedRef = useRef(null);
 
   const outerWallsRef = useRef({});
+  const exitWallsRef = useRef({});
 
   const [, setForceUpdate] = useState(0);
 
@@ -99,6 +106,12 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       img.src = src;
       img.onload = () => setForceUpdate(n => n + 1);
       outerWallsRef.current[key] = img;
+    }
+    for (const [key, src] of Object.entries(EXIT_WALL_SRCS)) {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => setForceUpdate(n => n + 1);
+      exitWallsRef.current[key] = img;
     }
     floorTilesRef.current = FLOOR_TILES.map(src => {
       const img = new Image();
@@ -183,7 +196,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
         floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
         arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current,
-        outerWallsRef.current);
+        outerWallsRef.current, exitWallsRef.current);
     };
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
@@ -199,7 +212,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
 }
 
 function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floorTiles,
-  hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, outerWalls) {
+  hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, outerWalls, exitWalls) {
   const { you, maze, visiblePlayers, exit } = gameData;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
@@ -215,31 +228,10 @@ function draw(ctx, gameData, W, H, CELL, targetId, myId, sprites, mouseDir, floo
 
   for (const row of maze.cells)
     for (const cell of row)
-      drawCellWalls(ctx, cell, CELL, outerWalls, maze.width, maze.height);
+      drawCellWalls(ctx, cell, CELL, outerWalls, maze.width, maze.height, exit, exitWalls);
 
   // Draw player
   if (you) drawPlayer(ctx, you, CELL, sprites, visiblePlayers, targetId, mouseDir);
-}
-
-function drawExit(ctx, px, py, CELL, direction) {
-  const gap = CELL * 0.3;
-  ctx.strokeStyle = COLOR.exit;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  if (direction === 'top') {
-    ctx.moveTo(px + gap, py);
-    ctx.lineTo(px + CELL - gap, py);
-  } else if (direction === 'bottom') {
-    ctx.moveTo(px + gap, py + CELL);
-    ctx.lineTo(px + CELL - gap, py + CELL);
-  } else if (direction === 'left') {
-    ctx.moveTo(px, py + gap);
-    ctx.lineTo(px, py + CELL - gap);
-  } else if (direction === 'right') {
-    ctx.moveTo(px + CELL, py + gap);
-    ctx.lineTo(px + CELL, py + CELL - gap);
-  }
-  ctx.stroke();
 }
 
 function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, hospitalUsedTile, arsenalTile, arsenalUsedTile, treasureTile, treasureUsedTile, sprites) {
@@ -270,10 +262,6 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
   ctx.strokeStyle = COLOR.gridLine;
   ctx.lineWidth = 0.5;
   ctx.strokeRect(px, py, CELL, CELL);
-
-  if (exit && exit.x === x && exit.y === y) {
-    drawExit(ctx, px, py, CELL, exit.direction);
-  }
 
   // POIs
   if (type === 'arsenal') {
@@ -358,11 +346,11 @@ function drawCellFloor(ctx, cell, CELL, exit, myId, floorTiles, hospitalTile, ho
   }
 }
 
-function drawCellWalls(ctx, cell, CELL, outerWalls, mazeW, mazeH) {
+function drawCellWalls(ctx, cell, CELL, outerWalls, mazeW, mazeH, exit, exitWalls) {
   if (!cell.walls) return;
   const px = cell.x * CELL;
   const py = cell.y * CELL;
-  drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH, cell.inZone);
+  drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH, cell.inZone, exit, exitWalls);
 }
 
 function drawTile(ctx, px, py, color, icon, label, CELL, active = true) {
@@ -403,7 +391,7 @@ function drawTiledWall(ctx, img, x, y, w, h) {
   }
 }
 
-function drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH) {
+function drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH, _inZone, exit, exitWalls) {
   if (!cell.walls) return;
 
   const ready = (img) => img?.complete && img.naturalWidth > 0;
@@ -432,6 +420,17 @@ function drawWalls(ctx, cell, px, py, CELL, outerWalls, mazeW, mazeH) {
       if (dir === 'left') { ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); }
       ctx.stroke();
       ctx.setLineDash([]);
+      continue;
+    }
+
+    const isExitWall = exit && exit.x === cell.x && exit.y === cell.y && exit.direction === dir;
+
+    if (isExitWall && ready(exitWalls?.[dir])) {
+      const img = exitWalls[dir];
+      if (dir === 'left') drawTiledWall(ctx, img, px, py, wt, CELL);
+      if (dir === 'right') drawTiledWall(ctx, img, px + CELL - wt, py, wt, CELL);
+      if (dir === 'top') drawTiledWall(ctx, img, px, py, CELL, wt);
+      if (dir === 'bottom') drawTiledWall(ctx, img, px, py + CELL - wt, CELL, wt);
       continue;
     }
 
