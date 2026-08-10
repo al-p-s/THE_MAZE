@@ -93,7 +93,7 @@ const CLASS_DATA = {
   trickster: {
     name: 'Charlotte',
     title: 'Cutie',
-    portrait: '/portraits/08_trickster.png',
+    portrait: '/portraits/08_cutie.png',
     initials: 'CR',
     color: '#9200d6',
     weapon: 'Revolver',
