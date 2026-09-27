@@ -1,4 +1,5 @@
 import EventLog from './EventLog';
+import { CLASS_DATA } from '../../config/classes';
 
 const COLOR = {
   accent: '#c8a84b',
@@ -10,97 +11,6 @@ const COLOR = {
   panelBg: '#0e0c09',
   portraitBg: '#111',
   empty: '#333',
-};
-
-const CLASS_DATA = {
-  reaper: {
-    name: 'Luther',
-    title: 'Reaper',
-    portrait: '/portraits/01_reaper.png',
-    initials: 'LT',
-    color: '#a10000',
-    weapon: 'Dagger',
-    passives: [
-      'WIP',
-    ],
-  },
-  pinkerton: {
-    name: 'Eugene',
-    title: 'Pinkerton',
-    portrait: '/portraits/02_pinkerton.png',
-    initials: 'EG',
-    color: '#9dfff2',
-    weapon: 'Pistole',
-    passives: [
-      'WIP',
-    ],
-  },
-  witch: {
-    name: 'Vivian',
-    title: 'Witch',
-    portrait: '/portraits/03_witch.png',
-    initials: 'VV',
-    color: '#64b33f',
-    weapon: 'Magic',
-    passives: [
-      'WIP',
-    ],
-  },
-  obsessed: {
-    name: 'Klaus',
-    title: 'Obsessed',
-    portrait: '/portraits/04_obsessed.png',
-    initials: 'KL',
-    color: '#ff4800',
-    weapon: 'Explosive pistol',
-    passives: [
-      'WIP'
-    ],
-  },
-  amazon: {
-    name: 'Athena',
-    title: 'Amazon',
-    portrait: '/portraits/05_amazon.png',
-    initials: 'AT',
-    color: '#ffbb00',
-    weapon: 'Grenade-gun',
-    passives: [
-      'WIP'
-    ],
-  },
-  succubus: {
-    name: 'Lilith',
-    title: 'Succubus',
-    portrait: '/portraits/06_succubus.png',
-    initials: 'LL',
-    color: '#ff0055',
-    weapon: 'Dual pistols',
-    passives: [
-      'WIP'
-    ],
-  },
-  werewolf: {
-    name: 'Fenrir',
-    title: 'Werewolf',
-    portrait: '/portraits/07_werewolf.png',
-    initials: 'FN',
-    color: '#c9abab',
-    weapon: 'Claws / Blunderbuss',
-    passives: [
-      'WIP'
-    ],
-  },
-  trickster: {
-    name: 'Charlotte',
-    title: 'Cutie',
-    portrait: '/portraits/08_cutie.png',
-    initials: 'CR',
-    color: '#9200d6',
-    weapon: 'Revolver',
-    passives: [
-      'WIP'
-    ],
-  },
 };
 
 export default function CharacterPanel({ me, events }) {

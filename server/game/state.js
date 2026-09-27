@@ -1,21 +1,23 @@
 const DIRS = { top:{dx:0,dy:-1}, right:{dx:1,dy:0}, bottom:{dx:0,dy:1}, left:{dx:-1,dy:0} };
 const OPPOSITE = { top:'bottom', bottom:'top', left:'right', right:'left' };
+const { assignRandomClasses, CLASS_CONFIG } = require('./classes');
 
 function getCell(maze, x, y) {
   if (x < 0 || y < 0 || x >= maze.width || y >= maze.height) return null;
   return maze.cells[y][x];
 }
 
-function createPlayer(socketId, index, spawnCell) {
+function createPlayer(socketId, index, spawnCell, className = 'pinkerton') {
+  const config = CLASS_CONFIG[className] || { health: 3, ammo: 2, bombs: 1 };
   return {
     id: socketId,
     index,
     x: spawnCell.x,
     y: spawnCell.y,
-    className: 'pinkerton',
-    health: 3,
-    ammo: 2,
-    bombs: 1,
+    className,
+    health: config.health ?? 3,
+    ammo: config.ammo ?? 2,
+    bombs: config.bombs ?? 1,
     items: [],
     debuffs: [],
     hasTreasure: false,
@@ -42,9 +44,10 @@ function createGameState(playerSockets, playerCount) {
   }
   console.log('treasure pos:', treasureX, treasureY);
   const spawns = spawnPlayers(cells, width, height, playerCount);
+  const classNames = assignRandomClasses(playerSockets.length);
 
   const players = playerSockets.map((socketId, i) =>
-    createPlayer(socketId, i, spawns[i])
+    createPlayer(socketId, i, spawns[i], classNames[i])
   );
 
   players.forEach(p => revealCell(p, p.x, p.y));

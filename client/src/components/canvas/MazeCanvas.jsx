@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { CLASS_SPRITES } from '../../config/classes';
 
 const WALL = 3;
 
@@ -59,16 +60,7 @@ const SPRITES = {
   treasure: {
     treasure: '/sprites/treasure/treasure.png',
   },
-  pinkerton: {
-    top: '/sprites/pinkerton/02_back.png',
-    bottom: '/sprites/pinkerton/02_front.png',
-    left: '/sprites/pinkerton/02_left.png',
-    right: '/sprites/pinkerton/02_right.png',
-    top_left: '/sprites/pinkerton/02_back_left.png',
-    top_right: '/sprites/pinkerton/02_back_right.png',
-    bottom_left: '/sprites/pinkerton/02_front_left.png',
-    bottom_right: '/sprites/pinkerton/02_front_right.png',
-  },
+  ...CLASS_SPRITES,
 };
 
 export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMouseDir }) {
@@ -157,7 +149,7 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       if (!canvas || !gameData?.you) return;
       const rect = canvas.getBoundingClientRect();
       const { you, maze } = gameData;
-      const CELL = canvas.width / maze.width;
+      const CELL = rect.width / maze.width;
       const cx = (you.x + 0.5) * CELL + rect.left;
       const cy = (you.y + 0.5) * CELL + rect.top;
       const dx = e.clientX - cx;
@@ -188,15 +180,28 @@ export default function MazeCanvas({ gameData, myId, targetId, mouseDir, setMous
       const { offsetWidth, offsetHeight } = containerRef.current;
       const MAX_SIZE = Math.min(offsetWidth, offsetHeight) - 20;
       const CELL = Math.floor(MAX_SIZE / Math.max(maze.width, maze.height));
-      if (canvas.width !== maze.width * CELL) {
-        canvas.width = maze.width * CELL;
-        canvas.height = maze.height * CELL;
+      const displayW = maze.width * CELL;
+      const displayH = maze.height * CELL;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const pixelW = Math.round(displayW * dpr);
+      const pixelH = Math.round(displayH * dpr);
+
+      if (canvas.width !== pixelW || canvas.height !== pixelH) {
+        canvas.width = pixelW;
+        canvas.height = pixelH;
+      }
+      if (canvas.style.width !== `${displayW}px` || canvas.style.height !== `${displayH}px`) {
+        canvas.style.width = `${displayW}px`;
+        canvas.style.height = `${displayH}px`;
       }
       const ctx = canvas.getContext('2d');
-      draw(ctx, gameData, canvas.width, canvas.height, CELL, targetId, myId, spritesRef.current, mouseDir,
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      draw(ctx, gameData, displayW, displayH, CELL, targetId, myId, spritesRef.current, mouseDir,
         floorTilesRef.current, hospitalTileRef.current, hospitalUsedTileRef.current,
         arsenalTileRef.current, arsenalUsedTileRef.current, treasureTileRef.current, treasureTileUsedRef.current,
         outerWallsRef.current, exitWallsRef.current);
+      ctx.restore();
     };
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
@@ -534,10 +539,12 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
   if (!isDead && img?.complete && img.naturalWidth > 0) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.filter = 'saturate(0.6)';
-    const offsetY = r * 0.7;
-    ctx.drawImage(img, cx - r * 1.0, cy - r * 1.0 + offsetY, r * 2.0, r * 2.0);
-    ctx.filter = 'none';
+    const size = r * 2.18;
+    const offsetY = r * 0.74;
+    const drawX = Math.round(cx - size / 2);
+    const drawY = Math.round(cy - size / 2 + offsetY);
+    const drawSize = Math.round(size);
+    ctx.drawImage(img, drawX, drawY, drawSize, drawSize);
   } else {
     ctx.globalAlpha = isDead ? 0.5 : 1;
     ctx.fillStyle = isDead ? COLOR.deadPlayer : color;
@@ -563,7 +570,7 @@ function drawSinglePlayer(ctx, player, CELL, color, pos, showTreasure, sprites, 
   }
 
   if (isTarget) {
-    const spriteCy = cy + r * 0.7;
+    const spriteCy = cy + r * 0.74;
     const s = r * 0.4;
     ctx.strokeStyle = COLOR.hpEnemy;
     ctx.lineWidth = 2;

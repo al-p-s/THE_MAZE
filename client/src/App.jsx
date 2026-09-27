@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import socket from './socket';
-import MazeCanvas from './components/MazeCanvas';
-import GameUI from './components/GameUI';
-import ActionPanel from './components/ActionPanel';
-import EventLog from './components/EventLog';
-import CharacterPanel from './components/CharacterPanel';
-import NotificationPanel from './components/NotificationPanel';
+import socket from './services/socket';
+import MazeCanvas from './components/canvas/MazeCanvas';
+import GameUI from './components/panels/GameUi';
+import ActionPanel from './components/panels/ActionPanel';
+import EventLog from './components/panels/EventLog';
+import CharacterPanel from './components/panels/CharacterPanel';
+import NotificationPanel from './components/panels/NotificationPanel';
 
 const INITIAL_STATE = {
   screen: 'waiting',
